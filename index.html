@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#080808; --surface:#111; --s2:#181818; --s3:#222;
+  --border:#2A2A2A; --bh:#444;
+  --accent:#8B5CF6; --adim:rgba(139,92,246,.10); --aglow:rgba(139,92,246,.28);
+  --red:#E05C3A; --rdim:rgba(224,92,58,.12);
+  --green:#4CAF7A;
+  --text:#F0F0F0; --muted:#606060; --muted2:#3A3A3A;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.5;}
+
+/* HEADER */
+header{position:sticky;top:0;z-index:100;background:rgba(8,8,8,.96);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-mark{width:30px;height:30px;background:linear-gradient(135deg,#8B5CF6,#6D28D9);border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;color:#fff;flex-shrink:0;}
+.logo-text{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;letter-spacing:-.3px;}
+.ws-badge{font-size:11px;color:var(--muted);padding:2px 8px;background:var(--s2);border:1px solid var(--border);border-radius:100px;margin-left:4px;}
+.header-right{display:flex;align-items:center;gap:10px;}
+.stat-chip{display:flex;align-items:center;gap:5px;padding:4px 10px;background:var(--surface);border:1px solid var(--border);border-radius:100px;}
+.stat-num{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;color:var(--accent);}
+.stat-label{font-size:10px;color:var(--muted);}
+.icon-btn{width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.icon-btn:hover{border-color:var(--bh);color:var(--text);background:var(--s2);}
+.gen-btn{padding:8px 16px;background:linear-gradient(135deg,#8B5CF6,#6D28D9);color:#fff;border:none;border-radius:8px;font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s;box-shadow:0 2px 12px rgba(139,92,246,.2);}
+.gen-btn:hover{transform:translateY(-1px);box-shadow:0 6px 24px var(--aglow);}
+
+/* TOOLBAR */
+.toolbar{padding:10px 24px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);background:rgba(8,8,8,.5);}
+.spacer{flex:1;}
+.add-btn{padding:6px 14px;background:var(--s2);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:'Outfit',sans-serif;font-size:12.5px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s;}
+.add-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--adim);}
+
+/* BOARD */
+.board{display:flex;min-height:calc(100vh - 104px);position:relative;z-index:1;}
+.column{flex:1;border-right:1px solid var(--border);display:flex;flex-direction:column;min-width:0;}
+.column:last-child{border-right:none;}
+.col-header{padding:16px 14px 12px;border-bottom:1px solid var(--border);position:sticky;top:58px;background:rgba(8,8,8,.98);backdrop-filter:blur(10px);z-index:10;}
+.col-accent-bar{width:100%;height:2px;border-radius:2px;margin-bottom:11px;}
+.col-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:7px;}
+.col-icon{font-size:17px;flex-shrink:0;margin-top:1px;}
+.col-info{flex:1;min-width:0;}
+.col-name{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:11.5px;letter-spacing:-.1px;margin-bottom:2px;}
+.col-sub{font-size:10px;color:var(--muted);}
+.col-count{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;line-height:1;flex-shrink:0;}
+
+/* CARDS */
+.cards-area{flex:1;padding:10px 9px;display:flex;flex-direction:column;gap:7px;overflow-y:auto;}
+.card{background:var(--surface);border:1px solid var(--border);border-left:3px solid transparent;border-radius:9px;padding:11px 12px;cursor:pointer;transition:all .15s;animation:cardIn .22s ease forwards;opacity:0;transform:translateY(5px);}
+@keyframes cardIn{to{opacity:1;transform:translateY(0);}}
+.card:hover{background:var(--s2);border-color:var(--bh);transform:translateY(-1px);box-shadow:0 6px 22px rgba(0,0,0,.35);}
+.card-top{display:flex;align-items:center;justify-content:space-between;gap:7px;}
+.card-title{font-weight:600;font-size:12px;line-height:1.4;flex:1;}
+.card-right{display:flex;align-items:center;gap:4px;flex-shrink:0;}
+.chevron-btn{width:20px;height:20px;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:transform .2s;flex-shrink:0;background:none;border:none;cursor:pointer;padding:0;}
+.card.expanded .chevron-btn{transform:rotate(180deg);}
+.card-actions{display:flex;gap:3px;opacity:0;transition:opacity .12s;}
+.card:hover .card-actions{opacity:1;}
+.card-action-btn{width:22px;height:22px;border-radius:5px;border:1px solid var(--border);background:var(--s3);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;}
+.card-action-btn:hover{border-color:var(--accent);color:var(--accent);}
+.card-action-btn.del:hover{border-color:var(--red);color:var(--red);}
+.card-body{font-size:11px;color:var(--muted);line-height:1.6;max-height:0;overflow:hidden;transition:max-height .22s ease, opacity .18s, margin-top .18s;opacity:0;margin-top:0;}
+.card.expanded .card-body{max-height:300px;opacity:1;margin-top:7px;}
+
+/* ADD CARD */
+.add-card-btn{margin:0 9px 11px;padding:8px;border:1px dashed var(--border);border-radius:7px;background:transparent;color:var(--muted);font-family:'Outfit',sans-serif;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .15s;width:calc(100% - 18px);}
+.add-card-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--adim);}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 12px;text-align:center;gap:5px;}
+.empty-icon{font-size:22px;opacity:.2;}
+.empty-text{font-size:10px;color:var(--muted);line-height:1.5;}
+
+/* MODALS */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(8px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .18s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%;max-width:500px;padding:24px;transform:translateY(10px) scale(.99);transition:transform .18s;box-shadow:0 24px 80px rgba(0,0,0,.6);}
+.modal-overlay.open .modal{transform:translateY(0) scale(1);}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.modal-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;}
+.modal-close{width:28px;height:28px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;}
+.modal-close:hover{border-color:var(--red);color:var(--red);}
+.form-group{margin-bottom:13px;}
+.form-label{display:flex;align-items:center;justify-content:space-between;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:6px;}
+.form-input,.form-textarea,.form-select{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:7px;padding:9px 12px;color:var(--text);font-family:'Outfit',sans-serif;font-size:13.5px;transition:border-color .12s;outline:none;-webkit-appearance:none;}
+.form-input:focus,.form-textarea:focus,.form-select:focus{border-color:var(--accent);background:var(--s3);}
+.form-textarea{resize:vertical;min-height:88px;line-height:1.6;}
+.form-select option{background:var(--s2);}
+.input-row{display:flex;gap:7px;align-items:flex-start;}
+.input-row .form-input,.input-row .form-textarea{flex:1;}
+
+/* MIC BUTTON */
+.mic-btn{width:38px;height:38px;flex-shrink:0;border-radius:8px;border:1px solid var(--border);background:var(--s2);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.mic-btn:hover{border-color:var(--accent);color:var(--accent);}
+.mic-btn.tall{height:88px;align-self:stretch;}
+.mic-btn.recording{border-color:var(--red);background:var(--rdim);color:var(--red);animation:micPulse 1s ease-in-out infinite;}
+@keyframes micPulse{0%,100%{box-shadow:0 0 0 0 rgba(224,92,58,.3);}50%{box-shadow:0 0 0 5px rgba(224,92,58,0);}}
+
+.modal-actions{display:flex;gap:9px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);}
+.btn-cancel{flex:1;padding:9px;background:transparent;border:1px solid var(--border);border-radius:7px;color:var(--muted);font-family:'Outfit',sans-serif;font-size:13px;cursor:pointer;transition:all .12s;}
+.btn-cancel:hover{border-color:var(--bh);color:var(--text);}
+.btn-save{flex:2;padding:9px;background:linear-gradient(135deg,#8B5CF6,#6D28D9);border:none;border-radius:7px;color:#fff;font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .15s;}
+.btn-save:hover{box-shadow:0 4px 18px var(--aglow);}
+
+/* SETTINGS */
+.settings-modal{max-width:460px;}
+.model-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.model-card{padding:10px 11px;border:1px solid var(--border);border-radius:8px;background:var(--s2);cursor:pointer;transition:all .12s;}
+.model-card:hover{border-color:var(--bh);}
+.model-card.selected{border-color:var(--accent);background:var(--adim);}
+.model-name{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:12px;color:var(--text);margin-bottom:2px;}
+.model-card.selected .model-name{color:var(--accent);}
+.model-price{font-size:10px;color:var(--muted);}
+.model-provider-tag{display:inline-block;font-size:9px;padding:1px 5px;border-radius:3px;font-weight:600;margin-bottom:3px;}
+.tag-oai{background:rgba(16,163,127,.12);color:#10a37f;}
+.tag-anth{background:rgba(139,92,246,.12);color:var(--accent);}
+.tag-ds{background:rgba(76,143,201,.12);color:#4C8FC9;}
+.api-key-section{background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:14px;margin-bottom:0;}
+.api-key-section+.api-key-section{margin-top:8px;}
+.provider-label{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.api-row{display:flex;gap:6px;}
+.api-row .form-input{flex:1;font-family:monospace;font-size:12px;}
+.toggle-vis{width:36px;flex-shrink:0;border:1px solid var(--border);border-radius:7px;background:var(--s2);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;}
+.toggle-vis:hover{border-color:var(--bh);color:var(--text);}
+.api-note{font-size:10.5px;color:var(--muted);line-height:1.5;margin-top:6px;}
+
+/* DRAWER */
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);z-index:500;opacity:0;pointer-events:none;transition:opacity .22s;}
+.drawer-overlay.open{opacity:1;pointer-events:all;}
+.drawer{position:fixed;top:0;right:0;height:100vh;width:400px;max-width:95vw;background:var(--surface);border-left:1px solid var(--border);z-index:501;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .28s cubic-bezier(.32,.72,0,1);box-shadow:-16px 0 48px rgba(0,0,0,.5);}
+.drawer-overlay.open .drawer{transform:translateX(0);}
+.drawer-head{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.drawer-icon{width:30px;height:30px;background:var(--adim);border:1px solid rgba(139,92,246,.2);border-radius:7px;display:flex;align-items:center;justify-content:center;margin-right:10px;}
+.drawer-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;}
+.drawer-sub{font-size:10.5px;color:var(--muted);margin-top:1px;}
+.drawer-body{flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:16px;}
+.drawer-footer{padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0;}
+.section-label{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:7px;display:flex;align-items:center;gap:8px;}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border);}
+.format-chips{display:flex;gap:6px;flex-wrap:wrap;}
+.format-chip{padding:5px 12px;border-radius:100px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Outfit',sans-serif;font-size:11.5px;cursor:pointer;transition:all .12s;}
+.format-chip:hover{border-color:var(--bh);color:var(--text);}
+.format-chip.active{background:var(--adim);border-color:var(--accent);color:var(--accent);font-weight:600;}
+.gen-prompt{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:11px 13px;color:var(--text);font-family:'Outfit',sans-serif;font-size:13px;line-height:1.6;resize:none;min-height:78px;outline:none;transition:border-color .12s;}
+.gen-prompt:focus{border-color:var(--accent);}
+.gen-prompt::placeholder{color:var(--muted);}
+.gen-output{width:100%;background:rgba(139,92,246,.04);border:1px solid rgba(139,92,246,.15);border-radius:8px;padding:13px;color:var(--text);font-family:'Outfit',sans-serif;font-size:12.5px;line-height:1.75;min-height:140px;white-space:pre-wrap;word-break:break-word;outline:none;}
+.output-actions{display:flex;gap:6px;margin-top:7px;justify-content:flex-end;}
+.btn-sm{padding:5px 11px;border-radius:6px;border:1px solid var(--border);background:var(--s2);color:var(--text);font-family:'Outfit',sans-serif;font-size:11.5px;cursor:pointer;transition:all .12s;display:flex;align-items:center;gap:4px;}
+.btn-sm:hover{border-color:var(--accent);color:var(--accent);}
+.no-api-box{padding:20px;background:var(--s2);border:1px dashed var(--border);border-radius:9px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:9px;}
+.no-api-box .big-icon{font-size:26px;}
+.no-api-box p{font-size:12px;color:var(--muted);line-height:1.6;}
+.btn-outline-accent{padding:7px 16px;border:1px solid var(--accent);border-radius:7px;background:var(--adim);color:var(--accent);font-family:'Outfit',sans-serif;font-weight:600;font-size:12px;cursor:pointer;transition:all .12s;}
+.btn-outline-accent:hover{background:rgba(139,92,246,.2);}
+.gen-action{width:100%;padding:12px;background:linear-gradient(135deg,#8B5CF6,#6D28D9);color:#fff;border:none;border-radius:8px;font-family:'Outfit',sans-serif;font-weight:700;font-size:13.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .15s;}
+.gen-action:hover{box-shadow:0 6px 22px var(--aglow);}
+.gen-action:disabled{opacity:.5;cursor:not-allowed;}
+.spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ONBOARDING */
+.onboard-overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);backdrop-filter:blur(14px);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .25s;}
+.onboard-overlay.open{opacity:1;pointer-events:all;}
+.onboard-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;width:100%;max-width:380px;padding:36px 30px;text-align:center;box-shadow:0 32px 80px rgba(0,0,0,.8);}
+.onboard-logo{width:52px;height:52px;background:linear-gradient(135deg,#8B5CF6,#6D28D9);border-radius:13px;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:20px;color:#fff;margin:0 auto 18px;}
+.onboard-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:21px;margin-bottom:7px;}
+.onboard-sub{font-size:12.5px;color:var(--muted);line-height:1.65;margin-bottom:26px;}
+.btn-start{width:100%;padding:12px;background:linear-gradient(135deg,#8B5CF6,#6D28D9);color:#fff;border:none;border-radius:8px;font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:all .15s;margin-top:8px;}
+.btn-start:hover{box-shadow:0 6px 22px var(--aglow);}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:10px 15px;font-size:12.5px;color:var(--text);z-index:4000;display:flex;align-items:center;gap:7px;transform:translateY(80px);opacity:0;transition:all .28s cubic-bezier(.34,1.56,.64,1);pointer-events:none;max-width:300px;}
+.toast.show{transform:translateY(0);opacity:1;}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+::-webkit-scrollbar-thumb:hover{background:var(--muted2);}
+</style>
+</head>
+<body>
+
+<!-- ONBOARDING -->
+<div class="onboard-overlay" id="onboard">
+  <div class="onboard-card">
+    <div class="onboard-logo">YS</div>
+    <div class="onboard-title">Content Studio</div>
+    <div class="onboard-sub">Ta banque d'idées personnelle pour créer du contenu high-ticket. Configure ton espace en 30 secondes.</div>
+    <div class="form-group" style="text-align:left">
+      <label class="form-label" style="display:block;margin-bottom:6px">Prénom ou nom de marque *</label>
+      <input class="form-input" id="ob-name" placeholder="Ex : Alex, Youscale, Sarah..." autocomplete="off">
+    </div>
+    <div class="form-group" style="text-align:left;margin-bottom:0">
+      <label class="form-label" style="display:block;margin-bottom:6px">Email ou téléphone <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">(pour récupérer ton accès)</span></label>
+      <input class="form-input" id="ob-contact" placeholder="ton@email.com ou +33 6 ..." autocomplete="off" type="text">
+    </div>
+    <button class="btn-start" onclick="finishOnboard()">Démarrer mon espace →</button>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-mark">YS</div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <span class="logo-text">Content Studio</span>
+      <span class="ws-badge" id="ws-badge" style="display:none"></span>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="stat-chip">
+      <span class="stat-num" id="stat-total">0</span>
+      <span class="stat-label">idées</span>
+    </div>
+    <button class="icon-btn" onclick="openSettings()" title="Paramètres">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+    <button class="gen-btn" onclick="openDrawer()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      Générer
+    </button>
+  </div>
+</header>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <div class="spacer"></div>
+  <button class="add-btn" onclick="openModal()">
+    <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    Nouvelle idée
+  </button>
+</div>
+
+<!-- BOARD -->
+<div class="board" id="board"></div>
+
+<!-- CARD MODAL -->
+<div class="modal-overlay" id="modal" onclick="overlayClick(event,'modal')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Nouvelle idée</div>
+      <button class="modal-close" onclick="closeModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Titre / Angle</label>
+      <div class="input-row">
+        <input class="form-input" id="f-title" placeholder="Ex: Comment j'ai perdu mes 3 premiers clients..." autocomplete="off">
+        <button class="mic-btn" id="mic-title" onclick="toggleVoice('f-title','mic-title')" title="Dicter le titre">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Contenu / Développement</label>
+      <div class="input-row">
+        <textarea class="form-textarea" id="f-body" placeholder="Développe l'idée, les points clés, le message principal..."></textarea>
+        <button class="mic-btn tall" id="mic-body" onclick="toggleVoice('f-body','mic-body')" title="Dicter le contenu">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Catégorie</label>
+      <select class="form-select" id="f-col">
+        <option value="0">🌱 Origin Stories</option>
+        <option value="1">💀 Failures Stories</option>
+        <option value="2">🏆 Success Stories</option>
+        <option value="3">⭐ Histoires Clients</option>
+        <option value="4">🎯 Avis sur la niche</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-save" onclick="saveCard()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settings-modal" onclick="overlayClick(event,'settings-modal')">
+  <div class="modal settings-modal">
+    <div class="modal-header">
+      <div class="modal-title">Paramètres</div>
+      <button class="modal-close" onclick="closeSettings()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nom de l'espace</label>
+      <input class="form-input" id="s-name" placeholder="Ton prénom ou nom de marque">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Modèle IA</label>
+      <div class="model-grid" id="s-model-grid"></div>
+    </div>
+    <div class="form-group" style="margin-bottom:8px">
+      <label class="form-label">Clés API</label>
+      <div class="api-key-section">
+        <div class="provider-label">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          OpenAI / DeepSeek
+          <span id="key-oai-status" style="color:var(--green);font-size:10px;font-weight:400;text-transform:none;letter-spacing:0"></span>
+        </div>
+        <div class="api-row">
+          <input class="form-input" type="password" id="s-key-oai" placeholder="sk-...">
+          <button class="toggle-vis" onclick="toggleVis('s-key-oai')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <div class="api-note">Pour DeepSeek Chat, GPT-4o Mini, GPT-4o</div>
+      </div>
+      <div class="api-key-section" style="margin-top:8px">
+        <div class="provider-label" style="color:var(--accent)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" y1="8" x2="2" y2="22"/><line x1="17.5" y1="15" x2="9" y2="15"/></svg>
+          Anthropic (Claude)
+          <span id="key-anth-status" style="color:var(--green);font-size:10px;font-weight:400;text-transform:none;letter-spacing:0"></span>
+        </div>
+        <div class="api-row">
+          <input class="form-input" type="password" id="s-key-anth" placeholder="sk-ant-...">
+          <button class="toggle-vis" onclick="toggleVis('s-key-anth')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <div class="api-note">Pour Claude Haiku &amp; Claude Sonnet</div>
+      </div>
+      <div class="api-note" style="background:transparent;border:none;padding:6px 0 0;font-size:10px">
+        🔒 Tes clés sont stockées uniquement sur cet appareil. Jamais envoyées à nos serveurs.
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeSettings()">Annuler</button>
+      <button class="btn-save" onclick="saveSettings()">Sauvegarder</button>
+    </div>
+  </div>
+</div>
+
+<!-- GENERATOR DRAWER -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="drawerOverlayClick(event)">
+  <div class="drawer">
+    <div class="drawer-head">
+      <div style="display:flex;align-items:center">
+        <div class="drawer-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+        <div>
+          <div class="drawer-title">Générateur de contenu</div>
+          <div class="drawer-sub">Basé sur ta banque d'idées</div>
+        </div>
+      </div>
+      <button class="icon-btn" onclick="closeDrawer()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="drawer-body" id="drawer-body"></div>
+    <div class="drawer-footer" id="drawer-footer"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><span id="toast-msg"></span></div>
+
+<script>
+// ──────────────────────────────────────────────
+// CONFIG
+// ──────────────────────────────────────────────
+
+// Remplis cette URL avec ton webhook Make.com/Zapier pour recevoir les contacts :
+const COLLECTION_WEBHOOK = '';
+
+const COLS = [
+  { id:'origin',   icon:'🌱', name:'Origin Stories',      sub:'Pourquoi as-tu commencé ?',     color:'#8B5CF6', prompt:'Raconte ton histoire de départ' },
+  { id:'failures', icon:'💀', name:'Failures Stories',     sub:'Crédibilité & Confiance',        color:'#E05C3A', prompt:'Raconte tes échecs et galères' },
+  { id:'success',  icon:'🏆', name:'Success Stories',      sub:'Enseigne par la Preuve',         color:'#4CAF7A', prompt:'Quelles sont tes réussites ?' },
+  { id:'clients',  icon:'⭐', name:'Histoires de Clients', sub:'Preuve Sociale',                 color:'#4C8FC9', prompt:'Réussites de tes clients' },
+  { id:'niche',    icon:'🎯', name:'Avis sur la niche',   sub:'Positionne-toi comme référence', color:'#C9A84C', prompt:'Tendances, erreurs, bouleversements' }
+];
+
+const MODELS = [
+  { id:'deepseek-chat',           name:'DeepSeek Chat',   price:'Ultra économique', provider:'openai', tag:'tag-ds',  tagLabel:'DeepSeek',  url:'https://api.deepseek.com/v1/chat/completions' },
+  { id:'gpt-4o-mini',             name:'GPT-4o Mini',     price:'Rapide & abordable',provider:'openai', tag:'tag-oai', tagLabel:'OpenAI',    url:'https://api.openai.com/v1/chat/completions' },
+  { id:'gpt-4o',                  name:'GPT-4o',          price:'Meilleure qualité', provider:'openai', tag:'tag-oai', tagLabel:'OpenAI',    url:'https://api.openai.com/v1/chat/completions' },
+  { id:'claude-haiku-4-5-20251001', name:'Claude Haiku', price:'Rapide & économique',provider:'anthropic',tag:'tag-anth',tagLabel:'Anthropic',url:'https://api.anthropic.com/v1/messages' },
+  { id:'claude-sonnet-4-6',       name:'Claude Sonnet',   price:'Haute qualité',    provider:'anthropic',tag:'tag-anth',tagLabel:'Anthropic',url:'https://api.anthropic.com/v1/messages' }
+];
+
+const FORMATS = [
+  { id:'twitter',  label:'𝕏 Thread Twitter' },
+  { id:'linkedin', label:'LinkedIn' },
+  { id:'video',    label:'🎥 Script vidéo' }
+];
+
+// ──────────────────────────────────────────────
+// STATE
+// ──────────────────────────────────────────────
+let cards    = [];
+let settings = {};
+let editingId = null;
+let selModel  = 'deepseek-chat';
+let selFmt    = 'twitter';
+let generating = false;
+const expanded = new Set();
+
+// Voice
+let recognition  = null;
+let voiceActive  = false;
+let voiceField   = null;
+let voiceBtn     = null;
+
+// ──────────────────────────────────────────────
+// PERSISTENCE
+// ──────────────────────────────────────────────
+function loadState() {
+  try { cards    = JSON.parse(localStorage.getItem('cs_cards')    || '[]'); } catch(e){ cards=[]; }
+  try { settings = JSON.parse(localStorage.getItem('cs_settings') || '{}'); } catch(e){ settings={}; }
+  if (!settings.model) settings.model = 'deepseek-chat';
+  selModel = settings.model;
+}
+function uid() { return Math.random().toString(36).slice(2)+Date.now().toString(36); }
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function saveCards(){ try{ localStorage.setItem('cs_cards', JSON.stringify(cards)); }catch(e){} }
+function saveCfg(){   try{ localStorage.setItem('cs_settings', JSON.stringify(settings)); }catch(e){} }
+
+// ──────────────────────────────────────────────
+// ONBOARDING
+// ──────────────────────────────────────────────
+function checkOnboard() {
+  if (!settings.workspaceName) {
+    document.getElementById('onboard').classList.add('open');
+  } else {
+    updateWsBadge();
+    if (!cards.length) seedCards();
+  }
+}
+
+async function finishOnboard() {
+  const name = document.getElementById('ob-name').value.trim();
+  if (!name) {
+    document.getElementById('ob-name').style.borderColor='var(--red)';
+    setTimeout(()=>document.getElementById('ob-name').style.borderColor='',900);
+    return;
+  }
+  const contact = document.getElementById('ob-contact').value.trim();
+  settings.workspaceName = name;
+  settings.contact = contact;
+  saveCfg();
+
+  // Send contact to collection webhook if configured
+  if (COLLECTION_WEBHOOK && contact) {
+    try {
+      await fetch(COLLECTION_WEBHOOK, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ name, contact, ts: new Date().toISOString() })
+      });
+    } catch(e){ /* silent fail */ }
+  }
+
+  document.getElementById('onboard').classList.remove('open');
+  updateWsBadge();
+  if (!cards.length) seedCards();
+  render();
+}
+
+function updateWsBadge() {
+  const b = document.getElementById('ws-badge');
+  if (settings.workspaceName) { b.textContent = settings.workspaceName; b.style.display=''; }
+}
+
+function seedCards() {
+  cards = [
+    { id:uid(), col:0, title:"J'avais 0 client et j'ai tout misé sur ça", body:"Partir de zéro, sans réseau, sans audience. Ce moment précis où j'ai décidé de tout changer.", ts:Date.now()-1e6 },
+    { id:uid(), col:1, title:"Le launch qui a fait 0€ après 3 mois de boulot", body:"Mon premier funnel, 300 personnes sur la liste, 0 vente. Ce que j'ai compris après.", ts:Date.now()-5e5 },
+    { id:uid(), col:2, title:"De 0 à 8K€ en 47 jours avec 1 seul système", body:"Exactement ce que j'ai mis en place, dans l'ordre, sans les erreurs habituelles.", ts:Date.now()-2e5 },
+    { id:uid(), col:3, title:"Mehdi a fermé 4 deals en 1 semaine avec NEXUS", body:"Ce qu'il a changé dans son process, les résultats concrets, en chiffres.", ts:Date.now() },
+    { id:uid(), col:4, title:"Pourquoi les coachs restent bloqués à 3K€/mois", body:"L'erreur systémique que je vois chez 90% des infopreneurs. Ce n'est pas le contenu.", ts:Date.now() }
+  ];
+  saveCards();
+}
+
+// ──────────────────────────────────────────────
+// RENDER
+// ──────────────────────────────────────────────
+const IC = {
+  copy:`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`,
+  edit:`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>`,
+  del:`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`,
+  chev:`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>`,
+  plus:`<svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`
+};
+
+function render() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  COLS.forEach((col, ci) => {
+    const colCards = cards.filter(c => c.col === ci);
+    const el = document.createElement('div');
+    el.className = 'column';
+    el.innerHTML = `
+      <div class="col-header">
+        <div class="col-accent-bar" style="background:linear-gradient(90deg,${col.color},transparent)"></div>
+        <div class="col-title-row">
+          <div class="col-icon">${col.icon}</div>
+          <div class="col-info">
+            <div class="col-name" style="color:${col.color}">${col.name}</div>
+            <div class="col-sub">${col.sub}</div>
+          </div>
+          <div class="col-count" style="color:${col.color}">${colCards.length}</div>
+        </div>
+      </div>
+      <div class="cards-area" id="ca-${ci}">
+        ${colCards.length===0?`<div class="empty-state"><div class="empty-icon">${col.icon}</div><div class="empty-text">${col.prompt}</div></div>`:''}
+      </div>
+      <button class="add-card-btn" onclick="openModal(${ci})">${IC.plus} Ajouter</button>
+    `;
+    board.appendChild(el);
+    const area = el.querySelector(`#ca-${ci}`);
+    colCards.forEach((card, i) => {
+      const isExp = expanded.has(card.id);
+      const c = document.createElement('div');
+      c.className = `card${isExp?' expanded':''}`;
+      c.setAttribute('data-id', card.id);
+      c.style.animationDelay = `${i*45}ms`;
+      c.style.borderLeftColor = col.color;
+      c.onclick = (e) => toggleExpand(e, card.id);
+      c.innerHTML = `
+        <div class="card-top">
+          <div class="card-title">${esc(card.title)}</div>
+          <div class="card-right">
+            ${card.body?`<button class="chevron-btn" onclick="event.stopPropagation();toggleExpand(event,'${card.id}')">${IC.chev}</button>`:''}
+            <div class="card-actions">
+              <button class="card-action-btn" onclick="event.stopPropagation();copyCard('${card.id}')" title="Copier">${IC.copy}</button>
+              <button class="card-action-btn" onclick="event.stopPropagation();editCard('${card.id}')" title="Modifier">${IC.edit}</button>
+              <button class="card-action-btn del" onclick="event.stopPropagation();delCard('${card.id}')" title="Supprimer">${IC.del}</button>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">${esc(card.body||'')}</div>
+      `;
+      area.appendChild(c);
+    });
+  });
+  document.getElementById('stat-total').textContent = cards.length;
+}
+
+function toggleExpand(e, id) {
+  if (e.target.closest('.card-actions')) return;
+  const cardEl = document.querySelector(`[data-id="${id}"]`);
+  if (!cardEl) return;
+  if (expanded.has(id)) { expanded.delete(id); cardEl.classList.remove('expanded'); }
+  else { expanded.add(id); cardEl.classList.add('expanded'); }
+}
+
+// ──────────────────────────────────────────────
+// CARD MODAL
+// ──────────────────────────────────────────────
+function openModal(colIdx) {
+  editingId = null;
+  document.getElementById('modal-title').textContent = 'Nouvelle idée';
+  document.getElementById('f-title').value = '';
+  document.getElementById('f-body').value = '';
+  if (colIdx !== undefined) document.getElementById('f-col').value = String(colIdx);
+  document.getElementById('modal').classList.add('open');
+  setTimeout(() => document.getElementById('f-title').focus(), 180);
+}
+function closeModal(){ stopVoice(); document.getElementById('modal').classList.remove('open'); }
+
+function editCard(id) {
+  const card = cards.find(c => c.id === id);
+  if (!card) return;
+  editingId = id;
+  document.getElementById('modal-title').textContent = "Modifier l'idée";
+  document.getElementById('f-title').value = card.title;
+  document.getElementById('f-body').value = card.body || '';
+  document.getElementById('f-col').value = String(card.col);
+  document.getElementById('modal').classList.add('open');
+  setTimeout(() => document.getElementById('f-title').focus(), 180);
+}
+
+function saveCard() {
+  const title = document.getElementById('f-title').value.trim();
+  if (!title) {
+    document.getElementById('f-title').style.borderColor='var(--red)';
+    setTimeout(()=>document.getElementById('f-title').style.borderColor='',900);
+    return;
+  }
+  const data = { title, body:document.getElementById('f-body').value.trim(), col:parseInt(document.getElementById('f-col').value), ts:Date.now() };
+  if (editingId) {
+    const idx = cards.findIndex(c=>c.id===editingId);
+    if (idx>=0) cards[idx] = { id:cards[idx].id, ...data };
+  } else { cards.push({ id:uid(), ...data }); }
+  saveCards(); closeModal(); render();
+  showToast(editingId?'Idée modifiée':'Idée ajoutée !');
+}
+
+function delCard(id) {
+  if (!confirm('Supprimer cette idée ?')) return;
+  cards = cards.filter(c=>c.id!==id);
+  expanded.delete(id);
+  saveCards(); render();
+  showToast('Supprimée');
+}
+
+function copyCard(id) {
+  const card = cards.find(c=>c.id===id);
+  if (!card) return;
+  navigator.clipboard.writeText(`${card.title}\n\n${card.body||''}`.trim()).then(()=>showToast('Copié !'));
+}
+
+function overlayClick(e,id){
+  if(e.target===document.getElementById(id)){
+    if(id==='modal') closeModal();
+    if(id==='settings-modal') closeSettings();
+  }
+}
+
+// ──────────────────────────────────────────────
+// SETTINGS
+// ──────────────────────────────────────────────
+function openSettings() {
+  document.getElementById('s-name').value     = settings.workspaceName || '';
+  document.getElementById('s-key-oai').value  = settings.apiKeyOAI    || '';
+  document.getElementById('s-key-anth').value = settings.apiKeyAnth   || '';
+  document.getElementById('key-oai-status').textContent  = settings.apiKeyOAI  ? '✓ configurée' : '';
+  document.getElementById('key-anth-status').textContent = settings.apiKeyAnth ? '✓ configurée' : '';
+  renderModelGrid('s-model-grid', selModel, pickModelSettings);
+  document.getElementById('settings-modal').classList.add('open');
+}
+function closeSettings(){ document.getElementById('settings-modal').classList.remove('open'); }
+
+function renderModelGrid(gridId, current, onPick) {
+  document.getElementById(gridId).innerHTML = MODELS.map(m=>`
+    <div class="model-card ${current===m.id?'selected':''}" onclick="${onPick.name}('${m.id}')">
+      <div class="model-provider-tag ${m.tag}">${m.tagLabel}</div>
+      <div class="model-name">${m.name}</div>
+      <div class="model-price">${m.price}</div>
+    </div>
+  `).join('');
+}
+
+function pickModelSettings(id){ selModel=id; renderModelGrid('s-model-grid',id,pickModelSettings); }
+function pickModelDrawer(id){ selModel=id; settings.model=id; saveCfg(); renderModelGrid('d-model-grid',id,pickModelDrawer); renderModelGrid('s-model-grid',id,pickModelSettings); }
+
+function toggleVis(inputId){
+  const inp=document.getElementById(inputId);
+  inp.type=inp.type==='password'?'text':'password';
+}
+
+function saveSettings(){
+  const name=document.getElementById('s-name').value.trim();
+  if(name) settings.workspaceName=name;
+  settings.apiKeyOAI  = document.getElementById('s-key-oai').value.trim();
+  settings.apiKeyAnth = document.getElementById('s-key-anth').value.trim();
+  settings.model = selModel;
+  saveCfg(); updateWsBadge(); closeSettings();
+  showToast('Paramètres sauvegardés');
+}
+
+// ──────────────────────────────────────────────
+// VOICE
+// ──────────────────────────────────────────────
+function initVoice() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  recognition = new SR();
+  recognition.lang = 'fr-FR';
+  recognition.continuous = true;
+  recognition.interimResults = false;
+
+  recognition.onresult = (ev) => {
+    let txt = '';
+    for (let i = ev.resultIndex; i < ev.results.length; i++) {
+      if (ev.results[i].isFinal) txt += ev.results[i][0].transcript + ' ';
+    }
+    if (txt && voiceField) {
+      const el = document.getElementById(voiceField);
+      if (el) el.value += (el.value?'\n':'') + txt.trim();
+    }
+  };
+
+  recognition.onerror = (ev) => {
+    if (ev.error === 'not-allowed') { stopVoice(); showToast('🎤 Accès micro refusé — autorise le navigateur'); }
+    else if (ev.error === 'no-speech') { /* silence pause, ok */ }
+    else { stopVoice(); showToast(`Erreur micro: ${ev.error}`); }
+  };
+
+  recognition.onend = () => {
+    if (voiceActive) {
+      setTimeout(() => { if (voiceActive) { try { recognition.start(); } catch(e){} } }, 200);
+    }
+  };
+}
+
+function toggleVoice(fieldId, btnId) {
+  if (location.protocol === 'file:') {
+    showToast('🎤 Ouvre via GitHub Pages ou un serveur local — pas file://');
+    return;
+  }
+  if (!recognition) { showToast('🎤 Micro non supporté — utilise Chrome ou Edge'); return; }
+  if (voiceActive && voiceField === fieldId) { stopVoice(); }
+  else { stopVoice(); startVoice(fieldId, btnId); }
+}
+
+function startVoice(fieldId, btnId) {
+  voiceActive = true; voiceField = fieldId; voiceBtn = btnId;
+  document.getElementById(btnId)?.classList.add('recording');
+  try { recognition.start(); } catch(e){}
+  showToast('🔴 Dictée active — re-cliquez pour arrêter');
+}
+
+function stopVoice() {
+  if (!voiceActive) return;
+  voiceActive = false;
+  document.getElementById(voiceBtn)?.classList.remove('recording');
+  voiceField = null; voiceBtn = null;
+  try { recognition.stop(); } catch(e){}
+}
+
+// ──────────────────────────────────────────────
+// DRAWER / GENERATOR
+// ──────────────────────────────────────────────
+function openDrawer() { buildDrawer(); document.getElementById('drawer-overlay').classList.add('open'); }
+function closeDrawer() { document.getElementById('drawer-overlay').classList.remove('open'); }
+function drawerOverlayClick(e){ if(e.target===document.getElementById('drawer-overlay')) closeDrawer(); }
+
+function getApiKey() {
+  const m = MODELS.find(x=>x.id===selModel);
+  return m?.provider==='anthropic' ? settings.apiKeyAnth : settings.apiKeyOAI;
+}
+
+function buildDrawer() {
+  const body   = document.getElementById('drawer-body');
+  const footer = document.getElementById('drawer-footer');
+  const hasKey = !!getApiKey();
+
+  if (!hasKey) {
+    body.innerHTML = `
+      <div class="no-api-box">
+        <div class="big-icon">🔑</div>
+        <p>Configure ta clé API pour activer la génération automatique basée sur ta banque d'idées.</p>
+        <button class="btn-outline-accent" onclick="closeDrawer();openSettings()">Configurer la clé API →</button>
+      </div>
+      <div>
+        <div class="section-label">Comment ça marche</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.8;background:var(--s2);border-radius:8px;padding:13px;border:1px solid var(--border)">
+          1. Entre ta clé API dans ⚙️ Paramètres<br>
+          2. Décris le post que tu veux créer<br>
+          3. L'IA puise dans toutes tes idées<br>
+          4. Copie et publie directement
+        </div>
+      </div>`;
+    footer.innerHTML = '';
+    return;
+  }
+
+  body.innerHTML = `
+    <div>
+      <div class="section-label">Format</div>
+      <div class="format-chips" id="fmt-chips">${FORMATS.map(f=>`<button class="format-chip${selFmt===f.id?' active':''}" onclick="pickFmt('${f.id}')">${f.label}</button>`).join('')}</div>
+    </div>
+    <div>
+      <div class="section-label">Modèle</div>
+      <div class="model-grid" id="d-model-grid"></div>
+    </div>
+    <div>
+      <div class="section-label">Ta demande</div>
+      <textarea class="gen-prompt" id="gen-prompt" placeholder="Ex : Thread sur mon histoire freelance&#10;Ex : Post LinkedIn sur l'erreur que font les coachs&#10;Ex : Script vidéo sur la réussite client Quenel..." rows="3"></textarea>
+      <div style="font-size:10.5px;color:var(--muted);margin-top:5px">💡 ${cards.length} idée${cards.length>1?'s':''} dans ta banque — utilisées comme contexte</div>
+    </div>
+    <div id="output-section" style="display:none">
+      <div class="section-label">Résultat</div>
+      <div class="gen-output" id="gen-output"></div>
+      <div class="output-actions">
+        <button class="btn-sm" onclick="copyOutput()">${IC.copy} Copier</button>
+        <button class="btn-sm" onclick="doGenerate()">↻ Régénérer</button>
+      </div>
+    </div>
+  `;
+  footer.innerHTML = `
+    <button class="gen-action" id="gen-btn" onclick="doGenerate()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      Générer le contenu
+    </button>`;
+  renderModelGrid('d-model-grid', selModel, pickModelDrawer);
+}
+
+function pickFmt(id) {
+  selFmt = id;
+  const chips = document.getElementById('fmt-chips');
+  if (chips) chips.innerHTML = FORMATS.map(f=>`<button class="format-chip${selFmt===f.id?' active':''}" onclick="pickFmt('${f.id}')">${f.label}</button>`).join('');
+}
+
+function buildContext() {
+  let ctx = '';
+  COLS.forEach((col,ci) => {
+    const cc = cards.filter(c=>c.col===ci);
+    if(cc.length){ ctx+=`\n## ${col.icon} ${col.name}\n`; cc.forEach(c=>{ ctx+=`- **${c.title}**${c.body?': '+c.body:''}\n`; }); }
+  });
+  return ctx || '(aucune idée enregistrée)';
+}
+
+function fmtInstr() {
+  if(selFmt==='twitter') return `Rédige un THREAD TWITTER en français (3 à 6 tweets). Numéroté 1/, 2/, etc. Max 280 chars/tweet. Accroche ultra-forte sur le 1/. Direct, personnel, authentique. Hashtags limités.`;
+  if(selFmt==='linkedin') return `Rédige un POST LINKEDIN en français (300-600 mots). Accroche forte en 1ère ligne, retours à la ligne fréquents. Ton authentique. 1 seule idée développée. Terminer par CTA ou question.`;
+  return `Rédige un SCRIPT DE VIDÉO COURTE en français (60-90 secondes, ~150-200 mots). Structure: Accroche (0-5s) | Développement (5-50s) | CTA (50-60s). Écris comme on parle.`;
+}
+
+async function doGenerate() {
+  if (generating) return;
+  const apiKey = getApiKey();
+  if (!apiKey) { showToast('Configure ta clé API d\'abord'); return; }
+  const prompt = document.getElementById('gen-prompt')?.value?.trim();
+  if (!prompt) { showToast('Décris ce que tu veux créer'); return; }
+
+  const model = MODELS.find(m=>m.id===selModel)||MODELS[0];
+  const sys = `Tu es un expert en création de contenu pour infopreneurs et coachs high-ticket francophones.
+Tu as accès à la banque d'idées personnelle de l'utilisateur.
+
+BANQUE D'IDÉES:
+${buildContext()}
+
+FORMAT: ${fmtInstr()}
+
+RÈGLES: Utilise les vraies infos de la banque quand pertinentes. Ton authentique et direct. Jamais corporate.`;
+
+  generating = true;
+  const btn = document.getElementById('gen-btn');
+  if (btn) { btn.disabled=true; btn.innerHTML='<div class="spinner"></div> Génération...'; }
+  const outSec = document.getElementById('output-section');
+  const outEl  = document.getElementById('gen-output');
+  if (outSec) outSec.style.display='block';
+  if (outEl)  outEl.textContent='⏳ Analyse de ta banque d\'idées...';
+
+  try {
+    let res, text;
+    if (model.provider === 'anthropic') {
+      res = await fetch(model.url, {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version':'2023-06-01',
+          'anthropic-dangerous-direct-browser-access':'true'
+        },
+        body: JSON.stringify({ model:model.id, max_tokens:1400, system:sys, messages:[{role:'user',content:prompt}] })
+      });
+      if (!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e?.error?.message||`Erreur ${res.status}`); }
+      const d = await res.json();
+      text = d?.content?.[0]?.text || '';
+    } else {
+      res = await fetch(model.url, {
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`},
+        body: JSON.stringify({ model:model.id, messages:[{role:'system',content:sys},{role:'user',content:prompt}], temperature:0.82, max_tokens:1400 })
+      });
+      if (!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e?.error?.message||`Erreur ${res.status}`); }
+      const d = await res.json();
+      text = d?.choices?.[0]?.message?.content || '';
+    }
+    if (outEl) outEl.textContent = text;
+    showToast('Contenu généré !');
+  } catch(err) {
+    if (outEl) outEl.textContent = `❌ ${err.message}\n\nVérifie ta clé API dans ⚙️ Paramètres.`;
+    showToast('Erreur — vérifie ta clé API');
+  } finally {
+    generating = false;
+    if (btn) { btn.disabled=false; btn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Générer le contenu'; }
+  }
+}
+
+function copyOutput(){
+  const t=document.getElementById('gen-output')?.textContent||'';
+  if(!t||t.startsWith('⏳')||t.startsWith('❌')) return;
+  navigator.clipboard.writeText(t).then(()=>showToast('Copié !'));
+}
+
+// ──────────────────────────────────────────────
+// TOAST
+// ──────────────────────────────────────────────
+let toastT;
+function showToast(msg){
+  clearTimeout(toastT);
+  const t=document.getElementById('toast');
+  document.getElementById('toast-msg').textContent=msg;
+  t.classList.add('show');
+  toastT=setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ──────────────────────────────────────────────
+// KEYBOARD
+// ──────────────────────────────────────────────
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape'){ closeModal(); closeSettings(); closeDrawer(); stopVoice(); }
+  if((e.ctrlKey||e.metaKey)&&e.key==='Enter'&&document.getElementById('modal').classList.contains('open')) saveCard();
+});
+
+// ──────────────────────────────────────────────
+// BOOT
+// ──────────────────────────────────────────────
+loadState();
+initVoice();
+checkOnboard();
+render();
+</script>
+</body>
+</html>
