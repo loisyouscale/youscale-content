@@ -672,36 +672,48 @@ function saveSettings(){
 // ──────────────────────────────────────────────
 // VOICE
 // ──────────────────────────────────────────────
-function initVoice() {
+function buildRecognition() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return;
-  recognition = new SR();
-  recognition.lang = 'fr-FR';
-  recognition.continuous = true;
-  recognition.interimResults = false;
+  if (!SR) return null;
+  const r = new SR();
+  r.lang = 'fr-FR';
+  r.continuous = false;
+  r.interimResults = false;
 
-  recognition.onresult = (ev) => {
+  r.onresult = (ev) => {
     let txt = '';
     for (let i = ev.resultIndex; i < ev.results.length; i++) {
       if (ev.results[i].isFinal) txt += ev.results[i][0].transcript + ' ';
     }
     if (txt && voiceField) {
       const el = document.getElementById(voiceField);
-      if (el) el.value += (el.value?'\n':'') + txt.trim();
+      if (el) el.value += (el.value ? '\n' : '') + txt.trim();
     }
   };
 
-  recognition.onerror = (ev) => {
-    if (ev.error === 'not-allowed') { stopVoice(); showToast('🎤 Accès micro refusé — autorise le navigateur'); }
-    else if (ev.error === 'no-speech') { /* silence pause, ok */ }
-    else { stopVoice(); showToast(`Erreur micro: ${ev.error}`); }
+  r.onerror = (ev) => {
+    if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
+      stopVoice(); showToast('🎤 Accès micro refusé — autorise dans les paramètres du navigateur');
+    } else if (ev.error === 'no-speech') {
+      /* pause normale, on redémarre dans onend */
+    } else {
+      stopVoice(); showToast(`Erreur micro: ${ev.error}`);
+    }
   };
 
-  recognition.onend = () => {
+  r.onend = () => {
     if (voiceActive) {
-      setTimeout(() => { if (voiceActive) { try { recognition.start(); } catch(e){} } }, 200);
+      recognition = buildRecognition();
+      if (recognition) setTimeout(() => { try { recognition.start(); } catch(e){} }, 150);
     }
   };
+  return r;
+}
+
+function initVoice() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  recognition = buildRecognition();
 }
 
 function toggleVoice(fieldId, btnId) {
