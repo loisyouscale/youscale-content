@@ -575,10 +575,25 @@ async function handleSignedIn(session) {
   showScreen('loading');
   loadLocalSettings();
 
+  // ── Cache hit : 2ème visite et plus → chargement instantané
+  const cachedProfile = _loadCachedProfile();
+  if (cachedProfile && cachedProfile.workspace_name) {
+    profile = cachedProfile;
+    if (cachedProfile.model) { selModel = cachedProfile.model; settings.model = cachedProfile.model; }
+    cards = _loadCachedCards();
+    showScreen('app');
+    updateWsBadge();
+    initVoice();
+    render();
+    _refreshFromSupabase(); // rafraîchit en arrière-plan
+    return;
+  }
+
+  // ── Pas de cache → 1ère connexion, charge depuis Supabase
   try {
     const { data: prof, error: profErr } = await withTimeout(
       sb.from('profiles').select('*').eq('id', currentUser.id).single(),
-      12000
+      30000
     );
     // PGRST116 = no rows = premier login (pas d'erreur critique)
     if (profErr && profErr.code !== 'PGRST116') throw profErr;
@@ -587,6 +602,7 @@ async function handleSignedIn(session) {
       showScreen('setup');
     } else {
       profile = prof;
+      _saveCachedProfile(prof);
       if (prof.model) { selModel = prof.model; settings.model = prof.model; }
       await loadCards();
       showScreen('app');
@@ -596,13 +612,14 @@ async function handleSignedIn(session) {
     }
   } catch (e) {
     console.error('[Auth] handleSignedIn error:', e.message);
-    await sb.auth.signOut().catch(() => {});
+    sb.auth.signOut().catch(() => {}); // fire-and-forget : ne pas await
     _appReady = false;
     showScreen('auth');
   }
 }
 
 async function signOut() {
+  _clearCache();
   _appReady = false;
   await sb.auth.signOut();  // déclenche SIGNED_OUT → onAuthStateChange → showScreen('auth')
   currentUser = null; profile = null; cards = [];
@@ -636,6 +653,7 @@ async function finishSetup() {
   if (error) { showToast('Erreur de configuration — réessaie'); return; }
 
   profile = data;
+  _saveCachedProfile(data);
   await loadCards();
   showScreen('app');
   updateWsBadge();
@@ -656,6 +674,51 @@ function saveLocalSettings() {
   try { localStorage.setItem('cs_settings', JSON.stringify(settings)); } catch(e) {}
 }
 
+// ═══════════════════════════════════════════════
+// CACHE (localStorage → 2ème visite instantanée)
+// ═══════════════════════════════════════════════
+function _cacheKey(suffix) {
+  return 'cs_' + (currentUser?.id?.slice(0,8) || 'x') + '_' + suffix;
+}
+function _saveCachedProfile(p) {
+  try { localStorage.setItem(_cacheKey('profile'), JSON.stringify(p)); } catch(e) {}
+}
+function _loadCachedProfile() {
+  try { return JSON.parse(localStorage.getItem(_cacheKey('profile')) || 'null'); } catch(e) { return null; }
+}
+function _saveCachedCards() {
+  try { localStorage.setItem(_cacheKey('cards'), JSON.stringify(cards)); } catch(e) {}
+}
+function _loadCachedCards() {
+  try { return JSON.parse(localStorage.getItem(_cacheKey('cards')) || '[]'); } catch(e) { return []; }
+}
+function _clearCache() {
+  try { localStorage.removeItem(_cacheKey('profile')); localStorage.removeItem(_cacheKey('cards')); } catch(e) {}
+}
+
+// Rafraîchit silencieusement profil + cards depuis Supabase (arrière-plan)
+async function _refreshFromSupabase() {
+  try {
+    const [profRes, cardsRes] = await Promise.all([
+      sb.from('profiles').select('*').eq('id', currentUser.id).single(),
+      sb.from('cards').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: true })
+    ]);
+    if (profRes.data) {
+      profile = profRes.data;
+      _saveCachedProfile(profile);
+      if (profile.model) { selModel = profile.model; settings.model = profile.model; }
+      updateWsBadge();
+    }
+    if (!cardsRes.error) {
+      cards = cardsRes.data || [];
+      _saveCachedCards();
+      render();
+    }
+  } catch(e) {
+    console.warn('[Cache] background refresh failed:', e.message);
+  }
+}
+
 function updateWsBadge() {
   const b = document.getElementById('ws-badge');
   const name = profile?.workspace_name;
@@ -671,7 +734,7 @@ async function loadCards() {
     .select('*')
     .eq('user_id', currentUser.id)
     .order('created_at', { ascending: true });
-  if (!error) cards = data || [];
+  if (!error) { cards = data || []; _saveCachedCards(); }
 }
 
 async function dbInsertCard(colIdx, title, body) {
@@ -827,6 +890,7 @@ async function saveCard() {
     showToast('Idée ajoutée');
   }
 
+  _saveCachedCards();
   btn.disabled=false; btn.textContent='Enregistrer';
   closeModal(); render();
 }
@@ -837,6 +901,7 @@ async function delCard(id) {
   if (error) { showToast('Erreur de suppression'); return; }
   cards = cards.filter(c => c.id !== id);
   expanded.delete(id);
+  _saveCachedCards();
   render(); showToast('Supprimée');
 }
 
@@ -900,9 +965,10 @@ async function saveSettings() {
     const { data } = await sb.from('profiles')
       .update({ workspace_name: name, model: selModel })
       .eq('id', currentUser.id).select().single();
-    if (data) { profile = data; updateWsBadge(); }
+    if (data) { profile = data; _saveCachedProfile(data); updateWsBadge(); }
   } else if (profile) {
     await sb.from('profiles').update({ model: selModel }).eq('id', currentUser.id);
+    if (profile) { profile.model = selModel; _saveCachedProfile(profile); }
   }
 
   closeSettings();
