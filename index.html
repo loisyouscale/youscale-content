@@ -576,22 +576,11 @@ async function handleSignedIn(session) {
   loadLocalSettings();
 
   try {
-    // Forcer un refresh du token avant tout appel DB
-    const { data: { session: fresh }, error: sessErr } = await withTimeout(sb.auth.refreshSession(), 10000);
-    if (sessErr || !fresh) {
-      await sb.auth.signOut().catch(() => {});
-      _appReady = false;
-      showScreen('auth');
-      return;
-    }
-    currentUser = fresh.user;
-
     const { data: prof, error: profErr } = await withTimeout(
       sb.from('profiles').select('*').eq('id', currentUser.id).single(),
-      10000
+      12000
     );
-
-    // PGRST116 = no rows = premier login OK
+    // PGRST116 = no rows = premier login (pas d'erreur critique)
     if (profErr && profErr.code !== 'PGRST116') throw profErr;
 
     if (!prof || !prof.workspace_name) {
@@ -606,7 +595,7 @@ async function handleSignedIn(session) {
       render();
     }
   } catch (e) {
-    console.error('handleSignedIn error:', e.message);
+    console.error('[Auth] handleSignedIn error:', e.message);
     await sb.auth.signOut().catch(() => {});
     _appReady = false;
     showScreen('auth');
@@ -1159,19 +1148,34 @@ document.addEventListener('keydown', e => {
 async function init() {
   showScreen('loading');
 
-  // onAuthStateChange est la source unique de vérité (pattern Supabase v2 recommandé).
-  // INITIAL_SESSION  → fired on every page load (session from localStorage or null)
-  // SIGNED_IN        → fired after magic link click
-  // SIGNED_OUT       → fired after signOut()
+  // ── Étape 1 : listener AVANT tout await (sinon on rate SIGNED_IN du magic link)
+  // SIGNED_IN       → après clic magic link (url hash traité par Supabase)
+  // TOKEN_REFRESHED → après refresh automatique d'un token expiré
+  // SIGNED_OUT      → après signOut()
   sb.auth.onAuthStateChange(async (event, session) => {
-    if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN') && session && !_appReady) {
+    if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session && !_appReady) {
       _appReady = true;
       await handleSignedIn(session);
-    } else if ((event === 'INITIAL_SESSION' && !session) || event === 'SIGNED_OUT') {
+    } else if (event === 'SIGNED_OUT') {
       _appReady = false;
       showScreen('auth');
     }
   });
+
+  // ── Étape 2 : vérifier session existante (rechargement de page)
+  // getSession() lit localStorage + refresh automatique si token expiré
+  try {
+    const { data: { session } } = await withTimeout(sb.auth.getSession(), 15000);
+    if (session && !_appReady) {
+      _appReady = true;
+      await handleSignedIn(session);
+    } else if (!_appReady) {
+      showScreen('auth');
+    }
+  } catch (e) {
+    console.error('[Auth] getSession timeout/error:', e.message);
+    if (!_appReady) showScreen('auth');
+  }
 }
 
 init();
