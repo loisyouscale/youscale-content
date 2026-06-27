@@ -565,23 +565,51 @@ function resetAuthForm() {
   document.getElementById('auth-email').value = '';
 }
 
+function withTimeout(promise, ms) {
+  const t = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms));
+  return Promise.race([promise, t]);
+}
+
 async function handleSignedIn(session) {
   currentUser = session.user;
   showScreen('loading');
   loadLocalSettings();
 
-  const { data: prof } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
+  try {
+    // Forcer un refresh du token avant tout appel DB
+    const { data: { session: fresh }, error: sessErr } = await withTimeout(sb.auth.refreshSession(), 10000);
+    if (sessErr || !fresh) {
+      await sb.auth.signOut().catch(() => {});
+      _appReady = false;
+      showScreen('auth');
+      return;
+    }
+    currentUser = fresh.user;
 
-  if (!prof || !prof.workspace_name) {
-    showScreen('setup');
-  } else {
-    profile = prof;
-    if (prof.model) { selModel = prof.model; settings.model = prof.model; }
-    await loadCards();
-    showScreen('app');
-    updateWsBadge();
-    initVoice();
-    render();
+    const { data: prof, error: profErr } = await withTimeout(
+      sb.from('profiles').select('*').eq('id', currentUser.id).single(),
+      10000
+    );
+
+    // PGRST116 = no rows = premier login OK
+    if (profErr && profErr.code !== 'PGRST116') throw profErr;
+
+    if (!prof || !prof.workspace_name) {
+      showScreen('setup');
+    } else {
+      profile = prof;
+      if (prof.model) { selModel = prof.model; settings.model = prof.model; }
+      await loadCards();
+      showScreen('app');
+      updateWsBadge();
+      initVoice();
+      render();
+    }
+  } catch (e) {
+    console.error('handleSignedIn error:', e.message);
+    await sb.auth.signOut().catch(() => {});
+    _appReady = false;
+    showScreen('auth');
   }
 }
 
