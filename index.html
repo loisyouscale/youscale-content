@@ -507,6 +507,7 @@ let editingId   = null;
 let selModel    = 'deepseek-chat';
 let selFmt      = 'twitter';
 let generating  = false;
+let _appReady   = false;  // garde anti-double-init
 const expanded  = new Set();
 
 // Voice
@@ -585,10 +586,10 @@ async function handleSignedIn(session) {
 }
 
 async function signOut() {
-  await sb.auth.signOut();
+  _appReady = false;
+  await sb.auth.signOut();  // déclenche SIGNED_OUT → onAuthStateChange → showScreen('auth')
   currentUser = null; profile = null; cards = [];
   closeSettings();
-  showScreen('auth');
   resetAuthForm();
 }
 
@@ -1130,22 +1131,19 @@ document.addEventListener('keydown', e => {
 async function init() {
   showScreen('loading');
 
-  // Écouter les changements d'auth (magic link redirect inclus)
+  // onAuthStateChange est la source unique de vérité (pattern Supabase v2 recommandé).
+  // INITIAL_SESSION  → fired on every page load (session from localStorage or null)
+  // SIGNED_IN        → fired after magic link click
+  // SIGNED_OUT       → fired after signOut()
   sb.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'SIGNED_IN' && session) {
+    if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN') && session && !_appReady) {
+      _appReady = true;
       await handleSignedIn(session);
-    } else if (event === 'SIGNED_OUT') {
+    } else if ((event === 'INITIAL_SESSION' && !session) || event === 'SIGNED_OUT') {
+      _appReady = false;
       showScreen('auth');
     }
   });
-
-  // Vérifier la session existante
-  const { data: { session } } = await sb.auth.getSession();
-  if (session) {
-    await handleSignedIn(session);
-  } else {
-    showScreen('auth');
-  }
 }
 
 init();
