@@ -4,6 +4,26 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Content Studio</title>
+<!-- ── SAFETY NET : tourne avant tout JS, avant même Supabase ── -->
+<script>
+(function(){
+  var t = setTimeout(function(){
+    var el = document.getElementById('screen-loading');
+    if (!el) return;
+    el.innerHTML = '<div style="font-size:13px;color:#888;text-align:center;padding:32px;font-family:sans-serif"><p style="margin-bottom:14px">Erreur de chargement.<br>Vérifie ta connexion et recharge.</p><button onclick="location.reload()" style="padding:9px 20px;background:#C9A84C;border:none;border-radius:8px;color:#fff;cursor:pointer;font-weight:600;font-size:13px">Recharger</button></div>';
+  }, 8000);
+  window._globalSafetyTimer = t;
+  window.onerror = function(msg, src, line){
+    console.error('[GlobalError]', msg, 'at line', line, 'in', src);
+    clearTimeout(window._globalSafetyTimer);
+    var el = document.getElementById('screen-loading');
+    if (el) el.innerHTML = '<div style="font-size:13px;color:#888;text-align:center;padding:32px;font-family:sans-serif"><p style="margin-bottom:14px">Erreur de chargement.<br>Vérifie ta connexion et recharge.</p><button onclick="location.reload()" style="padding:9px 20px;background:#C9A84C;border:none;border-radius:8px;color:#fff;cursor:pointer;font-weight:600;font-size:13px">Recharger</button></div>';
+    var loadingEl = document.getElementById('screen-loading');
+    if (loadingEl) loadingEl.style.display = 'flex';
+    return false;
+  };
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -136,6 +156,10 @@ header{position:sticky;top:0;z-index:100;background:rgba(8,8,8,.96);backdrop-fil
 .mic-btn.recording{border-color:var(--red);background:var(--rdim);color:var(--red);animation:micPulse 1s ease-in-out infinite;}
 @keyframes micPulse{0%,100%{box-shadow:0 0 0 0 rgba(224,92,58,.3);}50%{box-shadow:0 0 0 5px rgba(224,92,58,0);}}
 
+/* VOICE INTERIM DISPLAY */
+.voice-interim{font-size:11px;color:var(--muted);font-style:italic;padding:4px 0;min-height:0;max-height:0;overflow:hidden;transition:max-height .15s;opacity:.7;}
+.voice-interim.visible{max-height:40px;}
+
 .modal-actions{display:flex;gap:9px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);}
 .btn-cancel{flex:1;padding:9px;background:transparent;border:1px solid var(--border);border-radius:7px;color:var(--muted);font-family:'Outfit',sans-serif;font-size:13px;cursor:pointer;transition:all .12s;}
 .btn-cancel:hover{border-color:var(--bh);color:var(--text);}
@@ -166,6 +190,7 @@ header{position:sticky;top:0;z-index:100;background:rgba(8,8,8,.96);backdrop-fil
 .toggle-vis{width:36px;flex-shrink:0;border:1px solid var(--border);border-radius:7px;background:var(--s2);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;}
 .toggle-vis:hover{border-color:var(--bh);color:var(--text);}
 .api-note{font-size:10.5px;color:var(--muted);line-height:1.5;margin-top:6px;}
+.api-security-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 7px;border-radius:4px;background:rgba(76,175,122,.08);border:1px solid rgba(76,175,122,.2);color:var(--green);font-size:9.5px;font-weight:600;}
 .logout-btn{width:100%;padding:9px;background:transparent;border:1px solid var(--border);border-radius:7px;color:var(--muted);font-family:'Outfit',sans-serif;font-size:13px;cursor:pointer;transition:all .12s;display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;}
 .logout-btn:hover{border-color:var(--red);color:var(--red);}
 
@@ -323,6 +348,7 @@ header{position:sticky;top:0;z-index:100;background:rgba(8,8,8,.96);backdrop-fil
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
         </button>
       </div>
+      <div class="voice-interim" id="interim-f-title"></div>
     </div>
     <div class="form-group">
       <label class="form-label">Contenu / Développement</label>
@@ -332,6 +358,7 @@ header{position:sticky;top:0;z-index:100;background:rgba(8,8,8,.96);backdrop-fil
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
         </button>
       </div>
+      <div class="voice-interim" id="interim-f-body"></div>
     </div>
     <div class="form-group">
       <label class="form-label">Catégorie</label>
@@ -397,9 +424,12 @@ header{position:sticky;top:0;z-index:100;background:rgba(8,8,8,.96);backdrop-fil
         </div>
         <div class="api-note">Pour Claude Haiku &amp; Claude Sonnet</div>
       </div>
-      <div class="api-note" style="padding:6px 0 0;display:flex;align-items:center;gap:5px">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        Tes clés sont stockées uniquement sur cet appareil.
+      <div class="api-note" style="padding:8px 0 0;display:flex;align-items:center;gap:6px">
+        <span class="api-security-badge">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          AES-256 chiffrées
+        </span>
+        <span style="color:var(--muted)">Clés chiffrées, jamais en clair.</span>
       </div>
     </div>
     <div class="modal-actions" style="flex-direction:column;gap:6px">
@@ -442,17 +472,25 @@ header{position:sticky;top:0;z-index:100;background:rgba(8,8,8,.96);backdrop-fil
 
 <script>
 // ═══════════════════════════════════════════════
-// SUPABASE CONFIG — remplace ces deux valeurs
+// SUPABASE CONFIG
 // ═══════════════════════════════════════════════
 const SUPABASE_URL      = 'https://umtqcfmahkhsrutuvtcx.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtdHFjZm1haGtoc3J1dHV2dGN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1MjEyNTYsImV4cCI6MjA5ODA5NzI1Nn0.uzk94GsBL-UZwHnyI-vBhVa9TRhFgqId9VP8QCm1538';
 
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
-});
+let sb;
+try {
+  if (!window.supabase) throw new Error('Supabase CDN not loaded — check network or ad-blocker');
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
+  });
+  clearTimeout(window._globalSafetyTimer); // CDN chargé → on gère nous-mêmes les timers
+} catch(e) {
+  console.error('[Init] createClient failed:', e.message);
+  // Le global safety timer affichera le message de rechargement dans 8s
+}
 
 // ═══════════════════════════════════════════════
-// COLONNES (SVG icons, zéro emoji)
+// COLONNES
 // ═══════════════════════════════════════════════
 const COLS = [
   {
@@ -483,11 +521,11 @@ const COLS = [
 ];
 
 const MODELS = [
-  { id:'deepseek-chat',             name:'DeepSeek Chat',   price:'Ultra économique',  provider:'openai',     tag:'tag-ds',   tagLabel:'DeepSeek',  url:'https://api.deepseek.com/v1/chat/completions' },
-  { id:'gpt-4o-mini',               name:'GPT-4o Mini',     price:'Rapide & abordable',provider:'openai',     tag:'tag-oai',  tagLabel:'OpenAI',    url:'https://api.openai.com/v1/chat/completions' },
-  { id:'gpt-4o',                    name:'GPT-4o',          price:'Meilleure qualité', provider:'openai',     tag:'tag-oai',  tagLabel:'OpenAI',    url:'https://api.openai.com/v1/chat/completions' },
-  { id:'claude-haiku-4-5-20251001', name:'Claude Haiku',    price:'Rapide & économique',provider:'anthropic', tag:'tag-anth', tagLabel:'Anthropic', url:'https://api.anthropic.com/v1/messages' },
-  { id:'claude-sonnet-4-6',         name:'Claude Sonnet',   price:'Haute qualité',     provider:'anthropic', tag:'tag-anth', tagLabel:'Anthropic', url:'https://api.anthropic.com/v1/messages' }
+  { id:'deepseek-chat',             name:'DeepSeek Chat',   price:'Ultra économique',   provider:'openai',     tag:'tag-ds',   tagLabel:'DeepSeek',  url:'https://api.deepseek.com/v1/chat/completions' },
+  { id:'gpt-4o-mini',               name:'GPT-4o Mini',     price:'Rapide & abordable', provider:'openai',     tag:'tag-oai',  tagLabel:'OpenAI',    url:'https://api.openai.com/v1/chat/completions' },
+  { id:'gpt-4o',                    name:'GPT-4o',          price:'Meilleure qualité',  provider:'openai',     tag:'tag-oai',  tagLabel:'OpenAI',    url:'https://api.openai.com/v1/chat/completions' },
+  { id:'claude-haiku-4-5-20251001', name:'Claude Haiku',    price:'Rapide & économique',provider:'anthropic',  tag:'tag-anth', tagLabel:'Anthropic', url:'https://api.anthropic.com/v1/messages' },
+  { id:'claude-sonnet-4-6',         name:'Claude Sonnet',   price:'Haute qualité',      provider:'anthropic',  tag:'tag-anth', tagLabel:'Anthropic', url:'https://api.anthropic.com/v1/messages' }
 ];
 
 const FORMATS = [
@@ -499,22 +537,109 @@ const FORMATS = [
 // ═══════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════
-let currentUser = null;
-let profile     = null;
-let cards       = [];
-let settings    = {};  // API keys & model (localStorage)
-let editingId   = null;
-let selModel    = 'deepseek-chat';
-let selFmt      = 'twitter';
-let generating  = false;
-let _appReady   = false;  // garde anti-double-init
-const expanded  = new Set();
+let currentUser  = null;
+let profile      = null;
+let cards        = [];
+let settings     = {};        // model + UI prefs only (no plain-text keys)
+let editingId    = null;
+let selModel     = 'deepseek-chat';
+let selFmt       = 'twitter';
+let generating   = false;
+let _appReady    = false;
+const expanded   = new Set();
+
+// Security
+let encKey       = null;           // AES-GCM CryptoKey (derived from userId)
+let decryptedKeys = { oai: null, anth: null }; // In-memory only, never persisted plain
 
 // Voice
-let recognition = null;
-let voiceActive = false;
-let voiceField  = null;
-let voiceBtn    = null;
+let recognition  = null;
+let voiceActive  = false;
+let voiceField   = null;
+let voiceBtn     = null;
+
+// ═══════════════════════════════════════════════
+// SECURITY — AES-256-GCM ENCRYPTION
+// ═══════════════════════════════════════════════
+
+/** Derives a stable AES-GCM key from the user's ID. */
+async function getEncKey() {
+  if (!currentUser?.id) return null;
+  try {
+    const raw = new TextEncoder().encode(currentUser.id.replace(/-/g,'') + '__cs_key_v1');
+    const hashBuf = await crypto.subtle.digest('SHA-256', raw);
+    return crypto.subtle.importKey('raw', hashBuf, { name: 'AES-GCM' }, false, ['encrypt','decrypt']);
+  } catch(e) { return null; }
+}
+
+/** Encrypts plaintext → "ivB64.ctB64" */
+async function encryptStr(plaintext, key) {
+  if (!plaintext || !key) return '';
+  try {
+    const iv  = crypto.getRandomValues(new Uint8Array(12));
+    const ct  = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, key, new TextEncoder().encode(plaintext));
+    const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+    return b64(iv.buffer) + '.' + b64(ct);
+  } catch(e) { return ''; }
+}
+
+/** Decrypts "ivB64.ctB64" → plaintext */
+async function decryptStr(encStr, key) {
+  if (!encStr || !key || !encStr.includes('.')) return '';
+  try {
+    const [ivB64, ctB64] = encStr.split('.');
+    const iv  = Uint8Array.from(atob(ivB64), c => c.charCodeAt(0));
+    const ct  = Uint8Array.from(atob(ctB64), c => c.charCodeAt(0));
+    const pt  = await crypto.subtle.decrypt({ name:'AES-GCM', iv }, key, ct);
+    return new TextDecoder().decode(pt);
+  } catch(e) { return ''; }
+}
+
+/** Load decrypted API keys from Supabase profile (if columns exist) or encrypted localStorage */
+async function loadDecryptedKeys(prof) {
+  if (!encKey) return;
+  // Try Supabase profile columns first (requires migration — see youscale-migration.sql)
+  if (prof?.api_key_oai)  decryptedKeys.oai  = await decryptStr(prof.api_key_oai,  encKey);
+  if (prof?.api_key_anth) decryptedKeys.anth = await decryptStr(prof.api_key_anth, encKey);
+  // Fallback: encrypted localStorage backup
+  if (!decryptedKeys.oai  && settings.apiKeyOAIenc)  decryptedKeys.oai  = await decryptStr(settings.apiKeyOAIenc,  encKey);
+  if (!decryptedKeys.anth && settings.apiKeyAnthenc) decryptedKeys.anth = await decryptStr(settings.apiKeyAnthenc, encKey);
+  // Legacy migration: if plain keys exist in old format, migrate them
+  if (!decryptedKeys.oai  && settings.apiKeyOAI)  {
+    decryptedKeys.oai  = settings.apiKeyOAI;
+    await persistEncryptedKeys();  // re-save encrypted, drop plain
+  }
+  if (!decryptedKeys.anth && settings.apiKeyAnth) {
+    decryptedKeys.anth = settings.apiKeyAnth;
+    await persistEncryptedKeys();
+  }
+}
+
+/** Saves encrypted API keys to Supabase + localStorage backup */
+async function persistEncryptedKeys() {
+  if (!encKey || !currentUser) return;
+  const encOAI  = decryptedKeys.oai  ? await encryptStr(decryptedKeys.oai,  encKey) : '';
+  const encAnth = decryptedKeys.anth ? await encryptStr(decryptedKeys.anth, encKey) : '';
+
+  // Supabase (silent if columns don't exist yet — run youscale-migration.sql to enable)
+  sb.from('profiles').update({ api_key_oai: encOAI || null, api_key_anth: encAnth || null })
+    .eq('id', currentUser.id).then(() => {});
+
+  // localStorage encrypted backup (replaces old plain-text storage)
+  settings.apiKeyOAIenc  = encOAI;
+  settings.apiKeyAnthenc = encAnth;
+  delete settings.apiKeyOAI;   // remove any old plain-text keys
+  delete settings.apiKeyAnth;
+  saveLocalSettings();
+}
+
+// ═══════════════════════════════════════════════
+// INPUT SANITIZATION
+// ═══════════════════════════════════════════════
+/** Strip HTML tags and limit length to prevent injection */
+function sanitize(s) {
+  return (s || '').replace(/<[^>]*>/g, '').replace(/javascript:/gi, '').trim().slice(0, 5000);
+}
 
 // ═══════════════════════════════════════════════
 // SCREEN MANAGEMENT
@@ -529,40 +654,128 @@ function showScreen(name) {
 // ═══════════════════════════════════════════════
 // AUTH
 // ═══════════════════════════════════════════════
+
+// URL de production — toujours utiliser celle-ci (évite les URL file:// ou localhost)
+const SITE_URL = 'https://loisyouscale.github.io/youscale-content/';
+
+function _showAuthError(msg) {
+  let el = document.getElementById('auth-error');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'auth-error';
+    el.style.cssText = 'color:var(--red);font-size:12px;margin:6px 0 10px;text-align:center;line-height:1.4;';
+    const btn = document.getElementById('auth-btn');
+    if (btn && btn.parentNode) btn.parentNode.insertBefore(el, btn);
+  }
+  el.textContent = msg;
+}
+
+function _clearAuthError() {
+  const el = document.getElementById('auth-error');
+  if (el) el.textContent = '';
+}
+
+// ═══════════════════════════════════════════════
+// AUTH ANONYME (pas d'email requis)
+// ═══════════════════════════════════════════════
+let _anonSignInInProgress = false;
+
+async function _signInAnonymously(attempt = 1) {
+  // Guard : évite les double-appels (race entre onAuthStateChange et getSession)
+  if (attempt === 1) {
+    if (_anonSignInInProgress) return;
+    _anonSignInInProgress = true;
+  }
+  showScreen('loading');
+  try {
+    const { error } = await withTimeout(sb.auth.signInAnonymously(), 10000);
+    if (error) throw new Error(error.message || 'signInAnonymously failed');
+    _anonSignInInProgress = false;
+    // Succès → onAuthStateChange SIGNED_IN → handleSignedIn()
+  } catch(e) {
+    console.error('[Auth] _signInAnonymously attempt', attempt, ':', e.message);
+    if (attempt < 3) {
+      setTimeout(() => _signInAnonymously(attempt + 1), 3000);
+    } else {
+      _anonSignInInProgress = false;
+      const el = document.getElementById('screen-loading');
+      if (el) el.innerHTML = '<div style="font-size:13px;color:#888;text-align:center;padding:32px;font-family:sans-serif"><p style="margin-bottom:14px">Impossible de se connecter.<br>Vérifie ta connexion et recharge.</p><button onclick="location.reload()" style="padding:9px 20px;background:#C9A84C;border:none;border-radius:8px;color:#fff;cursor:pointer;font-weight:600;font-size:13px">Recharger</button></div>';
+    }
+  }
+}
+
 async function sendMagicLink() {
+  if (!sb) {
+    _showAuthError('Service non disponible. Recharge la page.');
+    return;
+  }
+
   const email = document.getElementById('auth-email').value.trim();
   if (!email || !email.includes('@')) {
     document.getElementById('auth-email').style.borderColor = 'var(--red)';
     setTimeout(() => document.getElementById('auth-email').style.borderColor = '', 900);
-    showToast('Saisis une adresse email valide');
+    _showAuthError('Saisis une adresse email valide.');
     return;
   }
+
   const btn = document.getElementById('auth-btn');
   btn.disabled = true;
   btn.textContent = 'Envoi en cours...';
+  _clearAuthError();
 
-  const { error } = await sb.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: window.location.href.split('#')[0] }
-  });
+  try {
+    const { error } = await withTimeout(
+      sb.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo: SITE_URL }
+      }),
+      15000
+    );
 
-  btn.disabled = false;
-  btn.textContent = 'Recevoir mon lien de connexion';
+    btn.disabled = false;
+    btn.textContent = 'Recevoir mon lien de connexion';
 
-  if (error) {
-    showToast('Erreur : ' + error.message);
-    return;
+    if (error) {
+      // Log complet pour diagnostic
+      console.error('[Auth] signInWithOtp error — full object:', JSON.stringify(error));
+      console.error('[Auth] message:', error.message, '| status:', error.status, '| name:', error.name);
+
+      // Messages d'erreur lisibles
+      const raw = JSON.stringify(error);
+      let msg;
+      if (error.status === 429 || error.message?.includes('rate limit')) {
+        msg = 'Limite atteinte — réessaie dans 1h.';
+      } else if (error.status === 422 || error.message?.includes('invalid')) {
+        msg = 'Email invalide ou non autorisé.';
+      } else if (error.status === 400 || raw === '{}' || !error.message) {
+        msg = 'Supabase : auth non configuré (vérif ci-dessous ↓)';
+      } else {
+        msg = 'Erreur Supabase (' + (error.status||'?') + ') : ' + (error.message || raw);
+      }
+      _showAuthError(msg);
+      return;
+    }
+
+    document.getElementById('auth-sent-addr').textContent = email;
+    document.getElementById('auth-form').style.display = 'none';
+    document.getElementById('auth-sent').style.display = 'block';
+
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = 'Recevoir mon lien de connexion';
+    const msg = e.message === 'timeout'
+      ? 'Délai dépassé (15s). Vérifie ta connexion et réessaie.'
+      : 'Erreur réseau : ' + e.message;
+    _showAuthError(msg);
+    console.error('[Auth] sendMagicLink threw:', e.message);
   }
-
-  document.getElementById('auth-sent-addr').textContent = email;
-  document.getElementById('auth-form').style.display = 'none';
-  document.getElementById('auth-sent').style.display = 'block';
 }
 
 function resetAuthForm() {
   document.getElementById('auth-form').style.display = 'block';
   document.getElementById('auth-sent').style.display = 'none';
   document.getElementById('auth-email').value = '';
+  _clearAuthError();
 }
 
 function withTimeout(promise, ms) {
@@ -575,27 +788,33 @@ async function handleSignedIn(session) {
   showScreen('loading');
   loadLocalSettings();
 
-  // ── Cache hit : 2ème visite et plus → chargement instantané
+  // Derive encryption key (non-blocking — failure is safe)
+  getEncKey().then(k => {
+    encKey = k;
+    // Reload decrypted keys once encKey is ready (background, no await)
+    if (profile) loadDecryptedKeys(profile).catch(() => {});
+  }).catch(() => {});
+
+  // ── Cache hit: 2nd+ visit → show app INSTANTLY ──
   const cachedProfile = _loadCachedProfile();
   if (cachedProfile && cachedProfile.workspace_name) {
     profile = cachedProfile;
     if (cachedProfile.model) { selModel = cachedProfile.model; settings.model = cachedProfile.model; }
     cards = _loadCachedCards();
-    showScreen('app');
+    showScreen('app');          // ← immédiat depuis le cache
     updateWsBadge();
     initVoice();
     render();
-    _refreshFromSupabase(); // rafraîchit en arrière-plan
+    _refreshFromSupabase();     // ← rafraîchit silencieusement en arrière-plan
     return;
   }
 
-  // ── Pas de cache → 1ère connexion, charge depuis Supabase
+  // ── Première connexion (pas de cache) ──
   try {
     const { data: prof, error: profErr } = await withTimeout(
       sb.from('profiles').select('*').eq('id', currentUser.id).single(),
-      30000
+      8000   // réduit à 8s (était 30s)
     );
-    // PGRST116 = no rows = premier login (pas d'erreur critique)
     if (profErr && profErr.code !== 'PGRST116') throw profErr;
 
     if (!prof || !prof.workspace_name) {
@@ -604,27 +823,52 @@ async function handleSignedIn(session) {
       profile = prof;
       _saveCachedProfile(prof);
       if (prof.model) { selModel = prof.model; settings.model = prof.model; }
-      await loadCards();
-      showScreen('app');
+      _captureEmail(prof);      // capture email en arrière-plan
+      // Charger les cards en parallèle, afficher dès que possible
+      loadCards().catch(() => {}).then(() => { _saveCachedCards(); render(); });
+      showScreen('app');        // ← n'attend PAS loadCards ni le déchiffrement
       updateWsBadge();
       initVoice();
       render();
     }
   } catch (e) {
     console.error('[Auth] handleSignedIn error:', e.message);
-    sb.auth.signOut().catch(() => {}); // fire-and-forget : ne pas await
     _appReady = false;
-    showScreen('auth');
+    showScreen('loading');
+    // Retente 1× avec la MÊME session (préserve l'UUID anonyme)
+    setTimeout(async () => {
+      try {
+        _appReady = true;
+        await handleSignedIn(session);
+      } catch(e2) {
+        _appReady = false;
+        const el = document.getElementById('screen-loading');
+        if (el) el.innerHTML = '<div style="font-size:13px;color:#888;text-align:center;padding:32px;font-family:sans-serif"><p style="margin-bottom:14px">Erreur de connexion.<br>Vérifie ta connexion et recharge.</p><button onclick="location.reload()" style="padding:9px 20px;background:#C9A84C;border:none;border-radius:8px;color:#fff;cursor:pointer;font-weight:600;font-size:13px">Recharger</button></div>';
+      }
+    }, 3000);
   }
+}
+
+/** Silently upsert email into profile if not already set */
+async function _captureEmail(prof) {
+  if (!currentUser?.email) return;
+  if (prof?.email === currentUser.email) return;
+  try {
+    await sb.from('profiles').update({ email: currentUser.email }).eq('id', currentUser.id);
+  } catch(e) {}
 }
 
 async function signOut() {
   _clearCache();
   _appReady = false;
-  await sb.auth.signOut();  // déclenche SIGNED_OUT → onAuthStateChange → showScreen('auth')
+  // Clear sensitive data from memory
+  encKey = null;
+  decryptedKeys = { oai: null, anth: null };
   currentUser = null; profile = null; cards = [];
   closeSettings();
-  resetAuthForm();
+  showScreen('loading');
+  await sb.auth.signOut();
+  // onAuthStateChange SIGNED_OUT → _signInAnonymously() → nouvelle session anonyme
 }
 
 // ═══════════════════════════════════════════════
@@ -638,13 +882,14 @@ async function finishSetup() {
     return;
   }
   if (!document.getElementById('setup-tos').checked) {
-    showToast('Accepte les conditions d\'utilisation pour continuer');
+    showToast("Accepte les conditions d'utilisation pour continuer");
     return;
   }
 
   const { data, error } = await sb.from('profiles').upsert({
     id: currentUser.id,
-    workspace_name: name,
+    email: currentUser.email || null,   // ← capture email at signup
+    workspace_name: sanitize(name),
     tos_accepted: true,
     tos_accepted_at: new Date().toISOString(),
     model: 'deepseek-chat'
@@ -668,35 +913,31 @@ function loadLocalSettings() {
   try { settings = JSON.parse(localStorage.getItem('cs_settings') || '{}'); } catch(e) { settings = {}; }
   if (!settings.model) settings.model = 'deepseek-chat';
   selModel = settings.model;
+  // Note: plain-text keys (apiKeyOAI / apiKeyAnth) are migrated to encrypted on first load via loadDecryptedKeys()
 }
 
 function saveLocalSettings() {
-  try { localStorage.setItem('cs_settings', JSON.stringify(settings)); } catch(e) {}
+  // Never save plain-text API keys
+  const safe = {
+    model: settings.model,
+    apiKeyOAIenc: settings.apiKeyOAIenc  || '',
+    apiKeyAnthenc: settings.apiKeyAnthenc || ''
+  };
+  try { localStorage.setItem('cs_settings', JSON.stringify(safe)); } catch(e) {}
 }
 
 // ═══════════════════════════════════════════════
 // CACHE (localStorage → 2ème visite instantanée)
 // ═══════════════════════════════════════════════
-function _cacheKey(suffix) {
-  return 'cs_' + (currentUser?.id?.slice(0,8) || 'x') + '_' + suffix;
-}
-function _saveCachedProfile(p) {
-  try { localStorage.setItem(_cacheKey('profile'), JSON.stringify(p)); } catch(e) {}
-}
-function _loadCachedProfile() {
-  try { return JSON.parse(localStorage.getItem(_cacheKey('profile')) || 'null'); } catch(e) { return null; }
-}
-function _saveCachedCards() {
-  try { localStorage.setItem(_cacheKey('cards'), JSON.stringify(cards)); } catch(e) {}
-}
-function _loadCachedCards() {
-  try { return JSON.parse(localStorage.getItem(_cacheKey('cards')) || '[]'); } catch(e) { return []; }
-}
+function _cacheKey(suffix) { return 'cs_' + (currentUser?.id?.slice(0,8) || 'x') + '_' + suffix; }
+function _saveCachedProfile(p) { try { localStorage.setItem(_cacheKey('profile'), JSON.stringify(p)); } catch(e) {} }
+function _loadCachedProfile() { try { return JSON.parse(localStorage.getItem(_cacheKey('profile')) || 'null'); } catch(e) { return null; } }
+function _saveCachedCards()   { try { localStorage.setItem(_cacheKey('cards'), JSON.stringify(cards)); } catch(e) {} }
+function _loadCachedCards()   { try { return JSON.parse(localStorage.getItem(_cacheKey('cards')) || '[]'); } catch(e) { return []; } }
 function _clearCache() {
   try { localStorage.removeItem(_cacheKey('profile')); localStorage.removeItem(_cacheKey('cards')); } catch(e) {}
 }
 
-// Rafraîchit silencieusement profil + cards depuis Supabase (arrière-plan)
 async function _refreshFromSupabase() {
   try {
     const [profRes, cardsRes] = await Promise.all([
@@ -707,6 +948,8 @@ async function _refreshFromSupabase() {
       profile = profRes.data;
       _saveCachedProfile(profile);
       if (profile.model) { selModel = profile.model; settings.model = profile.model; }
+      // Reload encrypted keys from refreshed profile
+      await loadDecryptedKeys(profile);
       updateWsBadge();
     }
     if (!cardsRes.error) {
@@ -730,8 +973,7 @@ function updateWsBadge() {
 // ═══════════════════════════════════════════════
 async function loadCards() {
   const { data, error } = await sb
-    .from('cards')
-    .select('*')
+    .from('cards').select('*')
     .eq('user_id', currentUser.id)
     .order('created_at', { ascending: true });
   if (!error) { cards = data || []; _saveCachedCards(); }
@@ -741,15 +983,15 @@ async function dbInsertCard(colIdx, title, body) {
   const { data, error } = await sb.from('cards').insert({
     user_id: currentUser.id,
     col: colIdx,
-    title,
-    body: body || ''
+    title: sanitize(title),
+    body:  sanitize(body || '')
   }).select().single();
   return { data, error };
 }
 
 async function dbUpdateCard(id, colIdx, title, body) {
   const { error } = await sb.from('cards')
-    .update({ col: colIdx, title, body: body || '', updated_at: new Date().toISOString() })
+    .update({ col: colIdx, title: sanitize(title), body: sanitize(body || ''), updated_at: new Date().toISOString() })
     .eq('id', id).eq('user_id', currentUser.id);
   return { error };
 }
@@ -847,11 +1089,12 @@ function openModal(colIdx) {
   document.getElementById('modal-title').textContent = 'Nouvelle idée';
   document.getElementById('f-title').value = '';
   document.getElementById('f-body').value = '';
+  clearInterim();
   if (colIdx !== undefined) document.getElementById('f-col').value = String(colIdx);
   document.getElementById('modal').classList.add('open');
   setTimeout(() => document.getElementById('f-title').focus(), 180);
 }
-function closeModal() { stopVoice(); document.getElementById('modal').classList.remove('open'); }
+function closeModal() { stopVoice(); clearInterim(); document.getElementById('modal').classList.remove('open'); }
 
 function editCard(id) {
   const card = cards.find(c => c.id === id);
@@ -860,6 +1103,7 @@ function editCard(id) {
   document.getElementById('modal-title').textContent = "Modifier l'idée";
   document.getElementById('f-title').value = card.title;
   document.getElementById('f-body').value = card.body || '';
+  clearInterim();
   document.getElementById('f-col').value = String(card.col);
   document.getElementById('modal').classList.add('open');
   setTimeout(() => document.getElementById('f-title').focus(), 180);
@@ -881,7 +1125,7 @@ async function saveCard() {
     const { error } = await dbUpdateCard(editingId, colIdx, title, body);
     if (error) { showToast('Erreur de sauvegarde'); btn.disabled=false; btn.textContent='Enregistrer'; return; }
     const idx = cards.findIndex(c => c.id === editingId);
-    if (idx >= 0) cards[idx] = { ...cards[idx], col:colIdx, title, body };
+    if (idx >= 0) cards[idx] = { ...cards[idx], col:colIdx, title:sanitize(title), body:sanitize(body) };
     showToast('Idée modifiée');
   } else {
     const { data, error } = await dbInsertCard(colIdx, title, body);
@@ -923,10 +1167,11 @@ function overlayClick(e, id) {
 // ═══════════════════════════════════════════════
 function openSettings() {
   document.getElementById('s-name').value     = profile?.workspace_name || '';
-  document.getElementById('s-key-oai').value  = settings.apiKeyOAI     || '';
-  document.getElementById('s-key-anth').value = settings.apiKeyAnth    || '';
-  document.getElementById('key-oai-status').textContent  = settings.apiKeyOAI  ? 'configurée' : '';
-  document.getElementById('key-anth-status').textContent = settings.apiKeyAnth ? 'configurée' : '';
+  // Show decrypted keys (from memory, never from localStorage plain-text)
+  document.getElementById('s-key-oai').value  = decryptedKeys.oai  || '';
+  document.getElementById('s-key-anth').value = decryptedKeys.anth || '';
+  document.getElementById('key-oai-status').textContent  = decryptedKeys.oai  ? 'configurée' : '';
+  document.getElementById('key-anth-status').textContent = decryptedKeys.anth ? 'configurée' : '';
   renderModelGrid('s-model-grid', selModel, pickModelSettings);
   document.getElementById('settings-modal').classList.add('open');
 }
@@ -955,15 +1200,22 @@ function toggleVis(inputId) {
 }
 
 async function saveSettings() {
-  const name = document.getElementById('s-name').value.trim();
-  settings.apiKeyOAI  = document.getElementById('s-key-oai').value.trim();
-  settings.apiKeyAnth = document.getElementById('s-key-anth').value.trim();
-  settings.model      = selModel;
-  saveLocalSettings();
+  const name     = document.getElementById('s-name').value.trim();
+  const rawOAI   = document.getElementById('s-key-oai').value.trim();
+  const rawAnth  = document.getElementById('s-key-anth').value.trim();
+  settings.model = selModel;
 
+  // Update in-memory decrypted keys
+  decryptedKeys.oai  = rawOAI  || null;
+  decryptedKeys.anth = rawAnth || null;
+
+  // Persist encrypted (Supabase + localStorage backup)
+  await persistEncryptedKeys();
+
+  // Update profile
   if (name && name !== profile?.workspace_name) {
     const { data } = await sb.from('profiles')
-      .update({ workspace_name: name, model: selModel })
+      .update({ workspace_name: sanitize(name), model: selModel })
       .eq('id', currentUser.id).select().single();
     if (data) { profile = data; _saveCachedProfile(data); updateWsBadge(); }
   } else if (profile) {
@@ -976,35 +1228,71 @@ async function saveSettings() {
 }
 
 // ═══════════════════════════════════════════════
-// VOICE
+// VOICE — DICTÉE VOCALE
 // ═══════════════════════════════════════════════
 function buildRecognition() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) return null;
   const r = new SR();
-  r.lang = 'fr-FR'; r.continuous = false; r.interimResults = false;
+  r.lang            = 'fr-FR';
+  r.continuous      = false;
+  r.interimResults  = true;
+  r.maxAlternatives = 1;
+
   r.onresult = (ev) => {
-    let txt = '';
+    let interimText = '';
+    let finalText   = '';
     for (let i = ev.resultIndex; i < ev.results.length; i++) {
-      if (ev.results[i].isFinal) txt += ev.results[i][0].transcript + ' ';
+      const t = ev.results[i][0].transcript;
+      if (ev.results[i].isFinal) finalText   += t + ' ';
+      else                        interimText += t;
     }
-    if (txt && voiceField) {
+    // Append final text to field
+    if (finalText && voiceField) {
       const el = document.getElementById(voiceField);
-      if (el) el.value += (el.value ? '\n' : '') + txt.trim();
+      if (el) el.value += (el.value ? '\n' : '') + finalText.trim();
+    }
+    // Show live interim preview
+    const interimEl = voiceField ? document.getElementById('interim-' + voiceField) : null;
+    if (interimEl) {
+      interimEl.textContent = interimText;
+      interimEl.classList.toggle('visible', !!interimText);
     }
   };
+
   r.onerror = (ev) => {
-    if (ev.error==='not-allowed'||ev.error==='service-not-allowed') {
-      stopVoice(); showToast('Accès micro refusé — autorise dans les paramètres du navigateur');
-    } else if (ev.error==='no-speech') { /* ok */ }
-    else { stopVoice(); showToast('Erreur micro: ' + ev.error); }
-  };
-  r.onend = () => {
-    if (voiceActive) {
-      recognition = buildRecognition();
-      if (recognition) setTimeout(() => { try { recognition.start(); } catch(e){} }, 150);
+    if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
+      stopVoice();
+      showToast('Micro refusé — autorise dans Paramètres du navigateur');
+    } else if (ev.error === 'no-speech') {
+      // Normal: user paused, will restart via onend
+    } else if (ev.error === 'network') {
+      stopVoice();
+      showToast('Erreur réseau — dictée interrompue');
+    } else if (ev.error === 'aborted') {
+      // Intentional stop, ignore
+    } else {
+      stopVoice();
+      showToast('Erreur micro : ' + ev.error);
     }
   };
+
+  r.onend = () => {
+    // Clear interim display
+    if (voiceField) {
+      const interimEl = document.getElementById('interim-' + voiceField);
+      if (interimEl) { interimEl.textContent = ''; interimEl.classList.remove('visible'); }
+    }
+    // Auto-restart if still active (continuous dictation pattern)
+    if (voiceActive) {
+      const newR = buildRecognition();
+      if (newR) {
+        recognition = newR;
+        setTimeout(() => { try { recognition.start(); } catch(e) {} }, 120);
+      }
+    }
+  };
+
   return r;
 }
 
@@ -1014,39 +1302,71 @@ function initVoice() {
   recognition = buildRecognition();
 }
 
+function clearInterim() {
+  ['interim-f-title','interim-f-body'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = ''; el.classList.remove('visible'); }
+  });
+}
+
 function toggleVoice(fieldId, btnId) {
-  if (!recognition) { showToast('Micro non supporté — utilise Chrome ou Edge'); return; }
-  if (voiceActive && voiceField===fieldId) stopVoice();
-  else { stopVoice(); startVoice(fieldId, btnId); }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { showToast('Micro non supporté — utilise Chrome ou Edge'); return; }
+
+  if (voiceActive && voiceField === fieldId) {
+    stopVoice();
+    return;
+  }
+  // Stop any current recording first
+  stopVoice();
+  // Always build a fresh recognition instance to avoid InvalidStateError
+  recognition = buildRecognition();
+  startVoice(fieldId, btnId);
 }
 
 async function startVoice(fieldId, btnId) {
-  try { await navigator.mediaDevices.getUserMedia({ audio: true }); }
-  catch(e) { showToast('Accès micro refusé — autorise le navigateur'); return; }
-  voiceActive=true; voiceField=fieldId; voiceBtn=btnId;
+  if (!recognition) { showToast('Micro non disponible'); return; }
+  try {
+    await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch(e) {
+    showToast('Accès micro refusé — autorise le navigateur');
+    return;
+  }
+  voiceActive = true;
+  voiceField  = fieldId;
+  voiceBtn    = btnId;
   document.getElementById(btnId)?.classList.add('recording');
-  try { recognition.start(); } catch(e){}
-  showToast('Dictée active — re-cliquez pour arrêter');
+  try { recognition.start(); } catch(e) {
+    // If already started or invalid state, rebuild
+    recognition = buildRecognition();
+    if (recognition) { try { recognition.start(); } catch(e2) { stopVoice(); showToast('Erreur micro — réessaie'); } }
+  }
+  showToast('Dictée active — cliquez à nouveau pour arrêter');
 }
 
 function stopVoice() {
-  if (!voiceActive) return;
-  voiceActive=false;
-  document.getElementById(voiceBtn)?.classList.remove('recording');
-  voiceField=null; voiceBtn=null;
-  try { recognition.stop(); } catch(e){}
+  if (!voiceActive && !voiceBtn) return;
+  voiceActive = false;
+  if (voiceBtn) document.getElementById(voiceBtn)?.classList.remove('recording');
+  if (voiceField) {
+    const interimEl = document.getElementById('interim-' + voiceField);
+    if (interimEl) { interimEl.textContent = ''; interimEl.classList.remove('visible'); }
+  }
+  voiceField = null;
+  voiceBtn   = null;
+  try { if (recognition) recognition.stop(); } catch(e) {}
 }
 
 // ═══════════════════════════════════════════════
 // DRAWER / GENERATOR
 // ═══════════════════════════════════════════════
-function openDrawer() { buildDrawer(); document.getElementById('drawer-overlay').classList.add('open'); }
+function openDrawer()  { buildDrawer(); document.getElementById('drawer-overlay').classList.add('open'); }
 function closeDrawer() { document.getElementById('drawer-overlay').classList.remove('open'); }
 function drawerOverlayClick(e) { if(e.target===document.getElementById('drawer-overlay')) closeDrawer(); }
 
 function getApiKey() {
   const m = MODELS.find(x => x.id===selModel);
-  return m?.provider==='anthropic' ? settings.apiKeyAnth : settings.apiKeyOAI;
+  return m?.provider==='anthropic' ? decryptedKeys.anth : decryptedKeys.oai;
 }
 
 function buildDrawer() {
@@ -1121,7 +1441,7 @@ function buildContext() {
 }
 
 function fmtInstr() {
-  if(selFmt==='twitter') return `Rédige un THREAD X/TWITTER en français (3 à 6 tweets). Numéroté 1/, 2/, etc. Max 280 chars/tweet. Accroche ultra-forte sur le 1/. Direct, personnel, authentique.`;
+  if(selFmt==='twitter')  return `Rédige un THREAD X/TWITTER en français (3 à 6 tweets). Numéroté 1/, 2/, etc. Max 280 chars/tweet. Accroche ultra-forte sur le 1/. Direct, personnel, authentique.`;
   if(selFmt==='linkedin') return `Rédige un POST LINKEDIN en français (300-600 mots). Accroche forte en 1ère ligne, retours à la ligne fréquents. Ton authentique. 1 seule idée développée. Terminer par CTA ou question.`;
   return `Rédige un SCRIPT DE VIDÉO COURTE en français (60-90 secondes, ~150-200 mots). Structure: Accroche (0-5s) | Développement (5-50s) | CTA (50-60s). Écris comme on parle.`;
 }
@@ -1158,7 +1478,7 @@ RÈGLES: Utilise les vraies infos de la banque quand pertinentes. Ton authentiqu
       const res = await fetch(model.url, {
         method:'POST',
         headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-        body: JSON.stringify({ model:model.id, max_tokens:1400, system:sys, messages:[{role:'user',content:prompt}] })
+        body: JSON.stringify({ model:model.id, max_tokens:1400, system:sys, messages:[{role:'user',content:sanitize(prompt)}] })
       });
       if (!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e?.error?.message||`Erreur ${res.status}`); }
       const d = await res.json(); text = d?.content?.[0]?.text || '';
@@ -1166,7 +1486,7 @@ RÈGLES: Utilise les vraies infos de la banque quand pertinentes. Ton authentiqu
       const res = await fetch(model.url, {
         method:'POST',
         headers:{'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`},
-        body: JSON.stringify({ model:model.id, messages:[{role:'system',content:sys},{role:'user',content:prompt}], temperature:0.82, max_tokens:1400 })
+        body: JSON.stringify({ model:model.id, messages:[{role:'system',content:sys},{role:'user',content:sanitize(prompt)}], temperature:0.82, max_tokens:1400 })
       });
       if (!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e?.error?.message||`Erreur ${res.status}`); }
       const d = await res.json(); text = d?.choices?.[0]?.message?.content || '';
@@ -1212,35 +1532,63 @@ document.addEventListener('keydown', e => {
 // BOOT
 // ═══════════════════════════════════════════════
 async function init() {
+  if (!sb) {
+    console.error('[Init] Supabase non initialisé — abort');
+    return; // le global safety timer s'en occupe
+  }
+  clearTimeout(window._globalSafetyTimer); // on reprend le contrôle
   showScreen('loading');
 
-  // ── Étape 1 : listener AVANT tout await (sinon on rate SIGNED_IN du magic link)
-  // SIGNED_IN       → après clic magic link (url hash traité par Supabase)
-  // TOKEN_REFRESHED → après refresh automatique d'un token expiré
-  // SIGNED_OUT      → après signOut()
+  // ── Filet de sécurité : si après 10s on est encore sur loading → réessaie en anonyme ──
+  const safetyTimer = setTimeout(() => {
+    const loadingEl = document.getElementById('screen-loading');
+    if (loadingEl && loadingEl.style.display !== 'none') {
+      console.warn('[Init] Safety timeout — trying anonymous sign-in');
+      _appReady = false;
+      _signInAnonymously();
+    }
+  }, 10000);
+
+  // onAuthStateChange gère TOUS les cas (INITIAL_SESSION inclus pour Supabase v2)
   sb.auth.onAuthStateChange(async (event, session) => {
-    if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session && !_appReady) {
+    console.log('[Auth] event:', event, '| session:', !!session, '| _appReady:', _appReady);
+
+    if (session && !_appReady &&
+        (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+      // Utilisateur connecté (session restaurée ou nouveau login anonyme)
       _appReady = true;
+      clearTimeout(safetyTimer);
       await handleSignedIn(session);
+
+    } else if (!session && !_appReady &&
+               (event === 'INITIAL_SESSION' || event === 'SIGNED_OUT')) {
+      // Pas de session → créer une session anonyme
+      clearTimeout(safetyTimer);
+      await _signInAnonymously();
+
     } else if (event === 'SIGNED_OUT') {
       _appReady = false;
-      showScreen('auth');
+      _signInAnonymously();
     }
   });
 
-  // ── Étape 2 : vérifier session existante (rechargement de page)
-  // getSession() lit localStorage + refresh automatique si token expiré
+  // getSession() en backup seulement si onAuthStateChange ne répond pas
+  // (cas rare : certain navigateurs/proxies bloquent les events WebSocket)
   try {
-    const { data: { session } } = await withTimeout(sb.auth.getSession(), 15000);
+    const { data: { session } } = await withTimeout(sb.auth.getSession(), 5000);
     if (session && !_appReady) {
       _appReady = true;
+      clearTimeout(safetyTimer);
       await handleSignedIn(session);
-    } else if (!_appReady) {
-      showScreen('auth');
+    } else if (!session && !_appReady) {
+      clearTimeout(safetyTimer);
+      await _signInAnonymously();
     }
   } catch (e) {
-    console.error('[Auth] getSession timeout/error:', e.message);
-    if (!_appReady) showScreen('auth');
+    // Timeout Supabase → si onAuthStateChange n'a pas encore répondu, tenter anonyme
+    console.warn('[Auth] getSession timeout:', e.message);
+    clearTimeout(safetyTimer);
+    if (!_appReady) _signInAnonymously();
   }
 }
 
